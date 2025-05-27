@@ -1,0 +1,179 @@
+<html><head><title>Lint Report</title><style>
+body { font-family: Arial; padding: 20px; } h1, h2 { color: #007bff; } pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+</style></head><body>
+<h1>Lint and Security Analysis Report</h1>
+<p>Generated on: Tue May 27 08:38:01 UTC 2025</p>
+<h2>Python Code Analysis</h2>
+<h3>Pylint Report</h3><pre>
+************* Module License
+extracted_code/microbots/License.py:7: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/microbots/License.py:10: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/microbots/License.py:21: [C0304(missing-final-newline), ] Final newline missing
+extracted_code/microbots/License.py:1: [C0114(missing-module-docstring), ] Missing module docstring
+extracted_code/microbots/License.py:1: [C0103(invalid-name), ] Module name "License" doesn't conform to snake_case naming style
+extracted_code/microbots/License.py:3: [C0116(missing-function-docstring), license_check] Missing function or method docstring
+extracted_code/microbots/License.py:16: [W0718(broad-exception-caught), license_check] Catching too general exception Exception
+extracted_code/microbots/License.py:12: [R1705(no-else-return), license_check] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+************* Module masterbot
+extracted_code/masterbot/masterbot.py:14: [C0301(line-too-long), ] Line too long (121/100)
+extracted_code/masterbot/masterbot.py:19: [C0301(line-too-long), ] Line too long (121/100)
+extracted_code/masterbot/masterbot.py:21: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:42: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:59: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:78: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:107: [C0301(line-too-long), ] Line too long (102/100)
+extracted_code/masterbot/masterbot.py:108: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:130: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:154: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:188: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:189: [C0301(line-too-long), ] Line too long (131/100)
+extracted_code/masterbot/masterbot.py:192: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:194: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:200: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:202: [C0301(line-too-long), ] Line too long (122/100)
+extracted_code/masterbot/masterbot.py:206: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:209: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:212: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:219: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:227: [C0301(line-too-long), ] Line too long (110/100)
+extracted_code/masterbot/masterbot.py:240: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:243: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:248: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:252: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:259: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:262: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:266: [C0301(line-too-long), ] Line too long (102/100)
+extracted_code/masterbot/masterbot.py:270: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:273: [C0301(line-too-long), ] Line too long (171/100)
+extracted_code/masterbot/masterbot.py:276: [C0301(line-too-long), ] Line too long (134/100)
+extracted_code/masterbot/masterbot.py:283: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/masterbot/masterbot.py:288: [C0304(missing-final-newline), ] Final newline missing
+extracted_code/masterbot/masterbot.py:1: [C0114(missing-module-docstring), ] Missing module docstring
+extracted_code/masterbot/masterbot.py:1: [E0401(import-error), ] Unable to import 'paramiko'
+extracted_code/masterbot/masterbot.py:2: [E0401(import-error), ] Unable to import 'openpyxl'
+extracted_code/masterbot/masterbot.py:3: [E0401(import-error), ] Unable to import 'win32cred'
+extracted_code/masterbot/masterbot.py:18: [E0401(import-error), ] Unable to import 'scripts.microbots.License'
+extracted_code/masterbot/masterbot.py:18: [C0413(wrong-import-position), ] Import "from scripts.microbots.License import license_check" should be placed at the top of the module
+extracted_code/masterbot/masterbot.py:35: [C0116(missing-function-docstring), get_credentials] Missing function or method docstring
+extracted_code/masterbot/masterbot.py:48: [W0718(broad-exception-caught), get_credentials] Catching too general exception Exception
+extracted_code/masterbot/masterbot.py:52: [C0116(missing-function-docstring), ssh_connect] Missing function or method docstring
+extracted_code/masterbot/masterbot.py:87: [W0718(broad-exception-caught), ssh_connect] Catching too general exception Exception
+extracted_code/masterbot/masterbot.py:79: [W0612(unused-variable), ssh_connect] Unused variable 'stdin'
+extracted_code/masterbot/masterbot.py:79: [W0612(unused-variable), ssh_connect] Unused variable 'stderr'
+extracted_code/masterbot/masterbot.py:95: [C0116(missing-function-docstring), write_to_report] Missing function or method docstring
+extracted_code/masterbot/masterbot.py:120: [C0116(missing-function-docstring), send_email] Missing function or method docstring
+extracted_code/masterbot/masterbot.py:120: [R0914(too-many-locals), send_email] Too many local variables (16/15)
+extracted_code/masterbot/masterbot.py:175: [W0718(broad-exception-caught), send_email] Catching too general exception Exception
+extracted_code/masterbot/masterbot.py:123: [W1514(unspecified-encoding), send_email] Using open without explicitly specifying an encoding
+extracted_code/masterbot/masterbot.py:178: [C0116(missing-function-docstring), main] Missing function or method docstring
+extracted_code/masterbot/masterbot.py:178: [R0914(too-many-locals), main] Too many local variables (22/15)
+extracted_code/masterbot/masterbot.py:278: [W0718(broad-exception-caught), main] Catching too general exception Exception
+extracted_code/masterbot/masterbot.py:186: [W1514(unspecified-encoding), main] Using open without explicitly specifying an encoding
+extracted_code/masterbot/masterbot.py:222: [W1514(unspecified-encoding), main] Using open without explicitly specifying an encoding
+extracted_code/masterbot/masterbot.py:225: [W1514(unspecified-encoding), main] Using open without explicitly specifying an encoding
+extracted_code/masterbot/masterbot.py:265: [W1514(unspecified-encoding), main] Using open without explicitly specifying an encoding
+extracted_code/masterbot/masterbot.py:284: [W1514(unspecified-encoding), main] Using open without explicitly specifying an encoding
+extracted_code/masterbot/masterbot.py:178: [R0915(too-many-statements), main] Too many statements (67/50)
+extracted_code/masterbot/masterbot.py:4: [C0411(wrong-import-order), ] standard import "os" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/masterbot/masterbot.py:5: [C0411(wrong-import-order), ] standard import "sys" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/masterbot/masterbot.py:6: [C0411(wrong-import-order), ] standard import "json" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/masterbot/masterbot.py:7: [C0411(wrong-import-order), ] standard import "datetime.datetime" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/masterbot/masterbot.py:8: [C0411(wrong-import-order), ] standard import "smtplib" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/masterbot/masterbot.py:9: [C0411(wrong-import-order), ] standard import "email.mime.multipart.MIMEMultipart" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/masterbot/masterbot.py:10: [C0411(wrong-import-order), ] standard import "email.mime.text.MIMEText" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/masterbot/masterbot.py:11: [C0411(wrong-import-order), ] standard import "email.mime.base.MIMEBase" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/masterbot/masterbot.py:12: [C0411(wrong-import-order), ] standard import "email.encoders" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+
+-----------------------------------
+Your code has been rated at 4.95/10
+
+</pre>
+<h3>Flake8 Report</h3><pre>
+extracted_code/masterbot/masterbot.py:14:80: E501 line too long (121 > 79 characters)
+extracted_code/masterbot/masterbot.py:16:80: E501 line too long (96 > 79 characters)
+extracted_code/masterbot/masterbot.py:18:1: E402 module level import not at top of file
+extracted_code/masterbot/masterbot.py:19:80: E501 line too long (121 > 79 characters)
+extracted_code/masterbot/masterbot.py:21:30: W291 trailing whitespace
+extracted_code/masterbot/masterbot.py:35:1: E302 expected 2 blank lines, found 1
+extracted_code/masterbot/masterbot.py:42:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:52:1: E302 expected 2 blank lines, found 1
+extracted_code/masterbot/masterbot.py:59:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:66:80: E501 line too long (84 > 79 characters)
+extracted_code/masterbot/masterbot.py:75:80: E501 line too long (93 > 79 characters)
+extracted_code/masterbot/masterbot.py:78:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:88:80: E501 line too long (85 > 79 characters)
+extracted_code/masterbot/masterbot.py:95:1: E302 expected 2 blank lines, found 1
+extracted_code/masterbot/masterbot.py:107:80: E501 line too long (102 > 79 characters)
+extracted_code/masterbot/masterbot.py:108:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:130:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:136:9: E265 block comment should start with '# '
+extracted_code/masterbot/masterbot.py:137:9: E265 block comment should start with '# '
+extracted_code/masterbot/masterbot.py:154:63: W291 trailing whitespace
+extracted_code/masterbot/masterbot.py:170:17: E265 block comment should start with '# '
+extracted_code/masterbot/masterbot.py:178:1: E302 expected 2 blank lines, found 1
+extracted_code/masterbot/masterbot.py:188:70: W291 trailing whitespace
+extracted_code/masterbot/masterbot.py:189:23: E128 continuation line under-indented for visual indent
+extracted_code/masterbot/masterbot.py:189:80: E501 line too long (131 > 79 characters)
+extracted_code/masterbot/masterbot.py:189:132: W291 trailing whitespace
+extracted_code/masterbot/masterbot.py:190:23: E128 continuation line under-indented for visual indent
+extracted_code/masterbot/masterbot.py:192:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:194:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:200:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:202:80: E501 line too long (122 > 79 characters)
+extracted_code/masterbot/masterbot.py:206:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:209:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:212:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:219:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:227:80: E501 line too long (110 > 79 characters)
+extracted_code/masterbot/masterbot.py:229:80: E501 line too long (84 > 79 characters)
+extracted_code/masterbot/masterbot.py:231:80: E501 line too long (82 > 79 characters)
+extracted_code/masterbot/masterbot.py:232:80: E501 line too long (84 > 79 characters)
+extracted_code/masterbot/masterbot.py:233:80: E501 line too long (85 > 79 characters)
+extracted_code/masterbot/masterbot.py:234:80: E501 line too long (91 > 79 characters)
+extracted_code/masterbot/masterbot.py:237:80: E501 line too long (100 > 79 characters)
+extracted_code/masterbot/masterbot.py:239:80: E501 line too long (95 > 79 characters)
+extracted_code/masterbot/masterbot.py:240:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:243:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:246:80: E501 line too long (99 > 79 characters)
+extracted_code/masterbot/masterbot.py:248:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:249:80: E501 line too long (87 > 79 characters)
+extracted_code/masterbot/masterbot.py:252:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:255:80: E501 line too long (97 > 79 characters)
+extracted_code/masterbot/masterbot.py:259:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:262:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:266:80: E501 line too long (102 > 79 characters)
+extracted_code/masterbot/masterbot.py:270:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:273:80: E501 line too long (171 > 79 characters)
+extracted_code/masterbot/masterbot.py:274:80: E501 line too long (82 > 79 characters)
+extracted_code/masterbot/masterbot.py:276:80: E501 line too long (134 > 79 characters)
+extracted_code/masterbot/masterbot.py:283:1: W293 blank line contains whitespace
+extracted_code/masterbot/masterbot.py:287:1: E305 expected 2 blank lines after class or function definition, found 1
+extracted_code/masterbot/masterbot.py:288:11: W292 no newline at end of file
+extracted_code/microbots/License.py:3:1: E302 expected 2 blank lines, found 1
+extracted_code/microbots/License.py:7:1: W293 blank line contains whitespace
+extracted_code/microbots/License.py:10:1: W293 blank line contains whitespace
+extracted_code/microbots/License.py:20:1: E305 expected 2 blank lines after class or function definition, found 1
+extracted_code/microbots/License.py:21:15: W292 no newline at end of file
+</pre>
+<h3>Security Analysis (Bandit)</h3><pre>
+[main]	INFO	profile include tests: None
+[main]	INFO	profile exclude tests: None
+[main]	INFO	cli include tests: None
+[main]	INFO	cli exclude tests: None
+[main]	INFO	running on Python 3.12.3
+[html]	INFO	HTML output written to file: reports/bandit_report.html
+</pre>
+<h3>Code Complexity (Radon)</h3><pre>
+extracted_code/microbots/License.py
+    F 3:0 license_check - A
+extracted_code/masterbot/masterbot.py
+    F 178:0 main - C
+    F 52:0 ssh_connect - A
+    F 35:0 get_credentials - A
+    F 120:0 send_email - A
+    F 95:0 write_to_report - A
+
+6 blocks (classes, functions, methods) analyzed.
+Average complexity: A (5.0)
+</pre>
+</body></html>
