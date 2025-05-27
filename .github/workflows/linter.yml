@@ -148,9 +148,10 @@ jobs:
           $reportFilePath = "${{ env.report_file }}"
           $folderPath = "Shared Documents/Reports/$($env:branchName)"
           $reportFileName = "lint_report_${{ env.timestamp }}.html"
-          Connect-PnPOnline -Url $siteUrl -ClientId $env:clientId -ClientSecret $env:clientSecret
-          Add-PnPFile -Path $reportFilePath -Folder $folderPath -NewFileName $reportFileName
+          Connect-PnPOnline -Url $siteUrl -ClientId $env:clientId -ClientSecret $env:clientSecret -WarningAction Ignore 
+          Add-PnPFile -Path $reportFilePath -Folder $folderPath -NewFileName $reportFileName                                                     
           Write-Host "Report uploaded to SharePoint successfully using App Registration."
+
         env:
           tenantId: ${{ secrets.SHAREPOINT_TENANT_ID }}
           clientId: ${{ secrets.SHAREPOINT_CLIENT_ID }}
