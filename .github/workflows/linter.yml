@@ -179,13 +179,17 @@ jobs:
           sudo apt-get install -y powershell
           pwsh -Command "Install-Module -Name PnP.PowerShell -Force -Scope CurrentUser"
 
+      - name: Install PnP PowerShell
+        shell: pwsh
+        run: |
+          Install-Module -Name PnP.PowerShell -Force -AllowClobber
+
       - name: Upload Report to SharePoint using App Registration
         if: always()
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
 
-          # Variables from GitHub secrets and env
           $tenantId = '${{ secrets.SHAREPOINT_TENANT_ID }}'
           $clientId = '${{ secrets.SHAREPOINT_CLIENT_ID }}'
           $clientSecret = '${{ secrets.SHAREPOINT_CLIENT_SECRET }}'
