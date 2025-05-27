@@ -1,5 +1,4 @@
 name: Lint and Analyze Code from ZIP
-
 on:
   push:
     paths:
@@ -32,14 +31,46 @@ jobs:
           find extracted -type d \( -name "masterbot" -o -name "microbots" \) -exec cp -r {} extracted_code/ \;
           true
 
+      - name: Verify PowerShell Setup
+        run: |
+          echo "Checking PowerShell Installation"
+          pwsh --version
+
+          echo "Checking PowerShell Modules"
+          pwsh -Command "Get-Module -ListAvailable PSScriptAnalyzer"
+
+          echo "Finding PowerShell Files"
+          find extracted_code -type f -name "*.ps1"
+
+          echo "Attempting Manual PSScriptAnalyzer Scan"
+          pwsh -Command "
+          \$ErrorActionPreference = 'Continue'
+          \$files = Get-ChildItem -Path extracted_code -Recurse -Filter '*.ps1'
+          if (\$files.Count -eq 0) {
+            Write-Host 'No PowerShell files found'
+          } else {
+            Write-Host \"Found \$($files.Count) PowerShell files\"
+            \$files | ForEach-Object {
+              Write-Host \"Analyzing: \$($_.FullName)\"
+              Invoke-ScriptAnalyzer -Path \$_.FullName -Severity Warning,Error
+            }
+          }
+          "
+
       - name: Detect Languages
         run: |
           python_files=$(find extracted_code -type f -name "*.py")
           bash_files=$(find extracted_code -type f -name "*.sh")
           powershell_files=$(find extracted_code -type f -name "*.ps1")
-          if [ -n "$python_files" ]; then echo "python_detected=true" >> $GITHUB_ENV; fi
-          if [ -n "$bash_files" ]; then echo "bash_detected=true" >> $GITHUB_ENV; fi
-          if [ -n "$powershell_files" ]; then echo "powershell_detected=true" >> $GITHUB_ENV; fi
+          if [ -n "$python_files" ]; then
+            echo "python_detected=true" >> $GITHUB_ENV
+          fi
+          if [ -n "$bash_files" ]; then
+            echo "bash_detected=true" >> $GITHUB_ENV
+          fi
+          if [ -n "$powershell_files" ]; then
+            echo "powershell_detected=true" >> $GITHUB_ENV
+          fi
 
       - name: Install Dependencies
         run: |
@@ -63,25 +94,68 @@ jobs:
           TIMESTAMP=$(date +%s)
           REPORT_FILE="reports/lint_report_${TIMESTAMP}.html"
           echo "<html><head><title>Lint Report</title><style>" > "$REPORT_FILE"
-          echo "body { font-family: Arial; padding: 20px; } h1, h2 { color: #007bff; } pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }" >> "$REPORT_FILE"
+          echo "body { font-family: Arial, sans-serif; padding: 20px; } h1, h2 { color: #007bff; } pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }" >> "$REPORT_FILE"
           echo "</style></head><body>" >> "$REPORT_FILE"
           echo "<h1>Lint and Security Analysis Report</h1>" >> "$REPORT_FILE"
           echo "<p>Generated on: $(date)</p>" >> "$REPORT_FILE"
+
           if [ "$python_detected" = "true" ]; then
             echo "<h2>Python Code Analysis</h2>" >> "$REPORT_FILE"
             echo "<h3>Pylint Report</h3><pre>" >> "$REPORT_FILE"
             find extracted_code -type f -name "*.py" -print0 | xargs -0 pylint --output-format=parseable 2>&1 | tee -a "$REPORT_FILE" || true
             echo "</pre>" >> "$REPORT_FILE"
+
             echo "<h3>Flake8 Report</h3><pre>" >> "$REPORT_FILE"
             find extracted_code -type f -name "*.py" -print0 | xargs -0 flake8 --format=default 2>&1 | tee -a "$REPORT_FILE" || true
             echo "</pre>" >> "$REPORT_FILE"
+
             echo "<h3>Security Analysis (Bandit)</h3><pre>" >> "$REPORT_FILE"
             bandit -r extracted_code -f html -o reports/bandit_report.html 2>&1 | tee -a "$REPORT_FILE" || true
             echo "</pre>" >> "$REPORT_FILE"
+
             echo "<h3>Code Complexity (Radon)</h3><pre>" >> "$REPORT_FILE"
             find extracted_code -type f -name "*.py" -print0 | xargs -0 radon cc -a 2>&1 | tee -a "$REPORT_FILE" || true
             echo "</pre>" >> "$REPORT_FILE"
           fi
+
+          if [ "$bash_detected" = "true" ]; then
+            echo "<h2>Bash Code Analysis</h2>" >> "$REPORT_FILE"
+            echo "<h3>ShellCheck Report</h3><pre>" >> "$REPORT_FILE"
+            find extracted_code -type f -name "*.sh" -print0 | xargs -0 shellcheck 2>&1 | tee -a "$REPORT_FILE" || true
+            echo "</pre>" >> "$REPORT_FILE"
+          fi
+
+          if [ "$powershell_detected" = "true" ]; then
+            echo "<h2>PowerShell Code Analysis</h2>" >> "$REPORT_FILE"
+            echo "<h3>PSScriptAnalyzer Report</h3><pre>" >> "$REPORT_FILE"
+            pwsh -NoProfile -Command "
+            \$ErrorActionPreference = 'Continue'
+            \$files = Get-ChildItem -Path extracted_code -Recurse -Filter '*.ps1'
+            if (\$files.Count -eq 0) {
+              Write-Host 'No PowerShell files found'
+            } else {
+              Write-Host \"Found \$($files.Count) PowerShell files\"
+              \$results = @()
+              \$files | ForEach-Object {
+                Write-Host \"Analyzing: \$($_.FullName)\"
+                \$result = Invoke-ScriptAnalyzer -Path \$_.FullName -Severity Warning,Error
+                if (\$result) {
+                  \$results += \$result
+                  \$result | ForEach-Object {
+                    \"\$($_.Severity): \$($_.RuleName) in \$($_.ScriptName) at line \$($_.Line)\n\$($_.Message)\"
+                  }
+                }
+              }
+              if (\$results.Count -gt 0) {
+                \$results | ForEach-Object { Write-Host \$_ }
+              } else {
+                Write-Host 'No issues found in PowerShell scripts'
+              }
+            }
+            " 2>&1 | tee -a "$REPORT_FILE" || true
+            echo "</pre>" >> "$REPORT_FILE"
+          fi
+
           echo "</body></html>" >> "$REPORT_FILE"
           echo "report_file=$REPORT_FILE" >> $GITHUB_ENV
           echo "timestamp=$TIMESTAMP" >> $GITHUB_ENV
@@ -103,11 +177,13 @@ jobs:
         run: |
           Install-Module -Name PnP.PowerShell -Force -AllowClobber -Scope CurrentUser
 
+
       - name: Upload Report to SharePoint using App Registration
         if: always()
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+
           $tenantId = '${{ secrets.SHAREPOINT_TENANT_ID }}'
           $clientId = '${{ secrets.SHAREPOINT_CLIENT_ID }}'
           $clientSecret = '${{ secrets.SHAREPOINT_CLIENT_SECRET }}'
