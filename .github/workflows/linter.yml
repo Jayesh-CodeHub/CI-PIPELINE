@@ -181,25 +181,24 @@ jobs:
 
       - name: Upload Report to SharePoint using App Registration
         if: always()
+        shell: pwsh
         run: |
-          pwsh -Command "
-            \$ErrorActionPreference = 'Stop'
+          $ErrorActionPreference = 'Stop'
 
-            # Variables from GitHub secrets and env
-            \$tenantId = '${{ secrets.SHAREPOINT_TENANT_ID }}'
-            \$clientId = '${{ secrets.SHAREPOINT_CLIENT_ID }}'
-            \$clientSecret = '${{ secrets.SHAREPOINT_CLIENT_SECRET }}'
-            \$siteUrl = '${{ secrets.SHAREPOINT_SITE_URL }}'
-            \$folderPath = '${{ secrets.SHAREPOINT_FOLDER_PATH }}'
-            \$branchName = '${{ github.ref_name }}'
-            \$reportFilePath = 'reports_dir/\$branchName/lint_report_${{ env.timestamp }}.html'
-            \$reportFileName = 'lint_report_\$branchName_${{ env.timestamp }}.html'
+          # Variables from GitHub secrets and env
+          $tenantId = '${{ secrets.SHAREPOINT_TENANT_ID }}'
+          $clientId = '${{ secrets.SHAREPOINT_CLIENT_ID }}'
+          $clientSecret = '${{ secrets.SHAREPOINT_CLIENT_SECRET }}'
+          $siteUrl = '${{ secrets.SHAREPOINT_SITE_URL }}'
+          $folderPath = '${{ secrets.SHAREPOINT_FOLDER_PATH }}'
+          $branchName = '${{ github.ref_name }}'
+          $reportFilePath = "reports_dir/$branchName/lint_report_${{ env.timestamp }}.html"
+          $reportFileName = "lint_report_$branchName_${{ env.timestamp }}.html"
 
-            # Connect using App Registration
-            Connect-PnPOnline -Url \$siteUrl -ClientId \$clientId -ClientSecret \$clientSecret -Tenant \$tenantId
+          # Connect using App Registration
+          Connect-PnPOnline -Url $siteUrl -ClientId $clientId -ClientSecret $clientSecret -Tenant $tenantId
 
-            # Upload report
-            Add-PnPFile -Path \$reportFilePath -Folder \$folderPath -NewFileName \$reportFileName
+          # Upload report
+          Add-PnPFile -Path $reportFilePath -Folder $folderPath -NewFileName $reportFileName
 
-            Write-Host '✅ Report uploaded to SharePoint successfully using App Registration.'
-          "
+          Write-Host '✅ Report uploaded to SharePoint successfully using App Registration.'
