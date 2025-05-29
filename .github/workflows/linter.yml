@@ -29,90 +29,51 @@ jobs:
       - name: Unzip and Extract Relevant Folders
         if: steps.find_zip.outputs.skip_analysis != 'true'
         run: |
-          mkdir -p extracted extracted_code/masterbot extracted_code/microbots
+          mkdir -p extracted extracted_code
           unzip -o "${{ steps.find_zip.outputs.latest_zip }}" -d extracted
           
-          # Extract masterbot folder if it exists
-          masterbot_found=false
+          # Extract masterbot and microbots folders if they exist
           if find extracted -type d -name "masterbot" | grep -q .; then
-            find extracted -type d -name "masterbot" -exec cp -r {}/* extracted_code/masterbot/ \; 2>/dev/null || true
-            masterbot_found=true
-            echo "Masterbot folder found and extracted"
+            find extracted -type d -name "masterbot" -exec cp -r {} extracted_code/ \;
           fi
-          
-          # Extract microbots folder if it exists
-          microbots_found=false
           if find extracted -type d -name "microbots" | grep -q .; then
-            find extracted -type d -name "microbots" -exec cp -r {}/* extracted_code/microbots/ \; 2>/dev/null || true
-            microbots_found=true
-            echo "Microbots folder found and extracted"
+            find extracted -type d -name "microbots" -exec cp -r {} extracted_code/ \;
           fi
           
-          # Set flags for later use
-          echo "masterbot_found=$masterbot_found" >> $GITHUB_OUTPUT
-          echo "microbots_found=$microbots_found" >> $GITHUB_OUTPUT
-          
-          # If neither folder found, extract all content
-          if [ "$masterbot_found" = "false" ] && [ "$microbots_found" = "false" ]; then
+          # Check if any code was extracted
+          if [ ! "$(ls -A extracted_code)" ]; then
             echo "No masterbot or microbots folders found. Extracting all content."
             cp -r extracted/* extracted_code/ 2>/dev/null || true
-            echo "masterbot_found=false" >> $GITHUB_OUTPUT
-            echo "microbots_found=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Detect Languages
         id: detect_lang
         if: steps.find_zip.outputs.skip_analysis != 'true'
         run: |
-          # Detect languages in masterbot folder
-          masterbot_python=$(find extracted_code/masterbot -type f -name "*.py" 2>/dev/null || true)
-          masterbot_bash=$(find extracted_code/masterbot -type f -name "*.sh" 2>/dev/null || true)
-          masterbot_powershell=$(find extracted_code/masterbot -type f -name "*.ps1" 2>/dev/null || true)
+          python_files=$(find extracted_code -type f -name "*.py" 2>/dev/null || true)
+          bash_files=$(find extracted_code -type f -name "*.sh" 2>/dev/null || true)
+          powershell_files=$(find extracted_code -type f -name "*.ps1" 2>/dev/null || true)
           
-          # Detect languages in microbots folder
-          microbots_python=$(find extracted_code/microbots -type f -name "*.py" 2>/dev/null || true)
-          microbots_bash=$(find extracted_code/microbots -type f -name "*.sh" 2>/dev/null || true)
-          microbots_powershell=$(find extracted_code/microbots -type f -name "*.ps1" 2>/dev/null || true)
-          
-          # Detect languages in other locations (if no specific folders found)
-          other_python=$(find extracted_code -type f -name "*.py" ! -path "*/masterbot/*" ! -path "*/microbots/*" 2>/dev/null || true)
-          other_bash=$(find extracted_code -type f -name "*.sh" ! -path "*/masterbot/*" ! -path "*/microbots/*" 2>/dev/null || true)
-          other_powershell=$(find extracted_code -type f -name "*.ps1" ! -path "*/masterbot/*" ! -path "*/microbots/*" 2>/dev/null || true)
-          
-          # Set overall detection flags
-          if [ -n "$masterbot_python" ] || [ -n "$microbots_python" ] || [ -n "$other_python" ]; then 
+          if [ -n "$python_files" ]; then 
             echo "python_detected=true" >> $GITHUB_OUTPUT
             echo "Python files detected"
           else
             echo "python_detected=false" >> $GITHUB_OUTPUT
           fi
           
-          if [ -n "$masterbot_bash" ] || [ -n "$microbots_bash" ] || [ -n "$other_bash" ]; then 
+          if [ -n "$bash_files" ]; then 
             echo "bash_detected=true" >> $GITHUB_OUTPUT
             echo "Bash files detected"
           else
             echo "bash_detected=false" >> $GITHUB_OUTPUT
           fi
           
-          if [ -n "$masterbot_powershell" ] || [ -n "$microbots_powershell" ] || [ -n "$other_powershell" ]; then 
+          if [ -n "$powershell_files" ]; then 
             echo "powershell_detected=true" >> $GITHUB_OUTPUT
             echo "PowerShell files detected"
           else
             echo "powershell_detected=false" >> $GITHUB_OUTPUT
           fi
-          
-          # Set specific folder detection flags
-          echo "masterbot_has_python=$([ -n "$masterbot_python" ] && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "masterbot_has_bash=$([ -n "$masterbot_bash" ] && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "masterbot_has_powershell=$([ -n "$masterbot_powershell" ] && echo true || echo false)" >> $GITHUB_OUTPUT
-          
-          echo "microbots_has_python=$([ -n "$microbots_python" ] && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "microbots_has_bash=$([ -n "$microbots_bash" ] && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "microbots_has_powershell=$([ -n "$microbots_powershell" ] && echo true || echo false)" >> $GITHUB_OUTPUT
-          
-          echo "other_has_python=$([ -n "$other_python" ] && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "other_has_bash=$([ -n "$other_bash" ] && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "other_has_powershell=$([ -n "$other_powershell" ] && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Install Python Dependencies
         if: steps.detect_lang.outputs.python_detected == 'true'
@@ -179,271 +140,74 @@ jobs:
           if [ "${{ steps.detect_lang.outputs.python_detected }}" = "true" ]; then
             echo "<h2>🐍 Python Code Analysis</h2>" >> "$REPORT_FILE"
             
-            # Analyze Masterbot Python files
-            if [ "${{ steps.detect_lang.outputs.masterbot_has_python }}" = "true" ]; then
-              echo "<h3>📁 Masterbot Scripts</h3>" >> "$REPORT_FILE"
-              
-              echo "<h4>Pylint Report - Masterbot</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code/masterbot -type f -name "*.py" -print0 | xargs -0 pylint --output-format=parseable --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Pylint analysis completed for masterbot" >> "$REPORT_FILE"
-              else
-                echo "No Python files found in masterbot or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
-
-              echo "<h4>Flake8 Report - Masterbot</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code/masterbot -type f -name "*.py" -print0 | xargs -0 flake8 --format=default --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Flake8 analysis completed for masterbot" >> "$REPORT_FILE"
-              else
-                echo "No Python files found in masterbot or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
-
-              echo "<h4>🔒 Security Analysis (Bandit) - Masterbot</h4><pre>" >> "$REPORT_FILE"
-              if bandit -r extracted_code/masterbot --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Security analysis completed for masterbot" >> "$REPORT_FILE"
-              else
-                echo "No Python files found in masterbot or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
-
-              echo "<h4>📊 Code Complexity (Radon) - Masterbot</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code/masterbot -type f -name "*.py" -print0 | xargs -0 radon cc -a --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Complexity analysis completed for masterbot" >> "$REPORT_FILE"
-              else
-                echo "No Python files found in masterbot or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
+            # Pylint
+            echo "<h3>Pylint Report</h3><pre>" >> "$REPORT_FILE"
+            if find extracted_code -type f -name "*.py" -print0 | xargs -0 pylint --output-format=parseable --exit-zero 2>&1 >> "$REPORT_FILE"; then
+              echo "Pylint analysis completed successfully" >> "$REPORT_FILE"
+            else
+              echo "Pylint analysis encountered issues" >> "$REPORT_FILE"
             fi
-            
-            # Analyze Microbots Python files
-            if [ "${{ steps.detect_lang.outputs.microbots_has_python }}" = "true" ]; then
-              echo "<h3>🤖 Microbots Scripts</h3>" >> "$REPORT_FILE"
-              
-              echo "<h4>Pylint Report - Microbots</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code/microbots -type f -name "*.py" -print0 | xargs -0 pylint --output-format=parseable --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Pylint analysis completed for microbots" >> "$REPORT_FILE"
-              else
-                echo "No Python files found in microbots or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
+            echo "</pre>" >> "$REPORT_FILE"
 
-              echo "<h4>Flake8 Report - Microbots</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code/microbots -type f -name "*.py" -print0 | xargs -0 flake8 --format=default --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Flake8 analysis completed for microbots" >> "$REPORT_FILE"
-              else
-                echo "No Python files found in microbots or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
-
-              echo "<h4>🔒 Security Analysis (Bandit) - Microbots</h4><pre>" >> "$REPORT_FILE"
-              if bandit -r extracted_code/microbots --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Security analysis completed for microbots" >> "$REPORT_FILE"
-              else
-                echo "No Python files found in microbots or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
-
-              echo "<h4>📊 Code Complexity (Radon) - Microbots</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code/microbots -type f -name "*.py" -print0 | xargs -0 radon cc -a --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Complexity analysis completed for microbots" >> "$REPORT_FILE"
-              else
-                echo "No Python files found in microbots or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
+            # Flake8
+            echo "<h3>Flake8 Report</h3><pre>" >> "$REPORT_FILE"
+            if find extracted_code -type f -name "*.py" -print0 | xargs -0 flake8 --format=default --exit-zero 2>&1 >> "$REPORT_FILE"; then
+              echo "Flake8 analysis completed successfully" >> "$REPORT_FILE"
+            else
+              echo "Flake8 analysis encountered issues" >> "$REPORT_FILE"
             fi
-            
-            # Analyze Other Python files (if any)
-            if [ "${{ steps.detect_lang.outputs.other_has_python }}" = "true" ]; then
-              echo "<h3>📄 Other Python Scripts</h3>" >> "$REPORT_FILE"
-              
-              echo "<h4>Pylint Report - Other Files</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code -type f -name "*.py" ! -path "*/masterbot/*" ! -path "*/microbots/*" -print0 | xargs -0 pylint --output-format=parseable --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Pylint analysis completed for other files" >> "$REPORT_FILE"
-              else
-                echo "No other Python files found or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
+            echo "</pre>" >> "$REPORT_FILE"
 
-              echo "<h4>Flake8 Report - Other Files</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code -type f -name "*.py" ! -path "*/masterbot/*" ! -path "*/microbots/*" -print0 | xargs -0 flake8 --format=default --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Flake8 analysis completed for other files" >> "$REPORT_FILE"
-              else
-                echo "No other Python files found or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
-
-              echo "<h4>🔒 Security Analysis (Bandit) - Other Files</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code -type f -name "*.py" ! -path "*/masterbot/*" ! -path "*/microbots/*" -exec bandit {} \; --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Security analysis completed for other files" >> "$REPORT_FILE"
-              else
-                echo "No other Python files found or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
-
-              echo "<h4>📊 Code Complexity (Radon) - Other Files</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code -type f -name "*.py" ! -path "*/masterbot/*" ! -path "*/microbots/*" -print0 | xargs -0 radon cc -a --exit-zero 2>&1 >> "$REPORT_FILE"; then
-                echo "Complexity analysis completed for other files" >> "$REPORT_FILE"
-              else
-                echo "No other Python files found or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
+            # Bandit Security Analysis
+            echo "<h3>🔒 Security Analysis (Bandit)</h3><pre>" >> "$REPORT_FILE"
+            if bandit -r extracted_code --exit-zero 2>&1 >> "$REPORT_FILE"; then
+              echo "Security analysis completed successfully" >> "$REPORT_FILE"
+            else
+              echo "Security analysis encountered issues" >> "$REPORT_FILE"
             fi
+            echo "</pre>" >> "$REPORT_FILE"
+
+            # Code Complexity
+            echo "<h3>📊 Code Complexity (Radon)</h3><pre>" >> "$REPORT_FILE"
+            if find extracted_code -type f -name "*.py" -print0 | xargs -0 radon cc -a --exit-zero 2>&1 >> "$REPORT_FILE"; then
+              echo "Complexity analysis completed successfully" >> "$REPORT_FILE"
+            else
+              echo "Complexity analysis encountered issues" >> "$REPORT_FILE"
+            fi
+            echo "</pre>" >> "$REPORT_FILE"
           fi
 
           # Bash Analysis
           if [ "${{ steps.detect_lang.outputs.bash_detected }}" = "true" ]; then
             echo "<h2>🐚 Bash Code Analysis</h2>" >> "$REPORT_FILE"
-            
-            # Analyze Masterbot Bash files
-            if [ "${{ steps.detect_lang.outputs.masterbot_has_bash }}" = "true" ]; then
-              echo "<h3>📁 Masterbot Scripts</h3>" >> "$REPORT_FILE"
-              echo "<h4>ShellCheck Report - Masterbot</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code/masterbot -type f -name "*.sh" -print0 | xargs -0 shellcheck --format=gcc 2>&1 >> "$REPORT_FILE"; then
-                echo "ShellCheck analysis completed for masterbot" >> "$REPORT_FILE"
-              else
-                echo "No Bash files found in masterbot or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
+            echo "<h3>ShellCheck Report</h3><pre>" >> "$REPORT_FILE"
+            if find extracted_code -type f -name "*.sh" -print0 | xargs -0 shellcheck --format=gcc 2>&1 >> "$REPORT_FILE"; then
+              echo "ShellCheck analysis completed successfully" >> "$REPORT_FILE"
+            else
+              echo "ShellCheck analysis encountered issues" >> "$REPORT_FILE"
             fi
-            
-            # Analyze Microbots Bash files
-            if [ "${{ steps.detect_lang.outputs.microbots_has_bash }}" = "true" ]; then
-              echo "<h3>🤖 Microbots Scripts</h3>" >> "$REPORT_FILE"
-              echo "<h4>ShellCheck Report - Microbots</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code/microbots -type f -name "*.sh" -print0 | xargs -0 shellcheck --format=gcc 2>&1 >> "$REPORT_FILE"; then
-                echo "ShellCheck analysis completed for microbots" >> "$REPORT_FILE"
-              else
-                echo "No Bash files found in microbots or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
-            fi
-            
-            # Analyze Other Bash files
-            if [ "${{ steps.detect_lang.outputs.other_has_bash }}" = "true" ]; then
-              echo "<h3>📄 Other Bash Scripts</h3>" >> "$REPORT_FILE"
-              echo "<h4>ShellCheck Report - Other Files</h4><pre>" >> "$REPORT_FILE"
-              if find extracted_code -type f -name "*.sh" ! -path "*/masterbot/*" ! -path "*/microbots/*" -print0 | xargs -0 shellcheck --format=gcc 2>&1 >> "$REPORT_FILE"; then
-                echo "ShellCheck analysis completed for other files" >> "$REPORT_FILE"
-              else
-                echo "No other Bash files found or analysis failed" >> "$REPORT_FILE"
-              fi
-              echo "</pre>" >> "$REPORT_FILE"
-            fi
+            echo "</pre>" >> "$REPORT_FILE"
           fi
 
           # PowerShell Analysis
           if [ "${{ steps.detect_lang.outputs.powershell_detected }}" = "true" ]; then
             echo "<h2>💻 PowerShell Code Analysis</h2>" >> "$REPORT_FILE"
-            
-            # Analyze Masterbot PowerShell files
-            if [ "${{ steps.detect_lang.outputs.masterbot_has_powershell }}" = "true" ]; then
-              echo "<h3>📁 Masterbot Scripts</h3>" >> "$REPORT_FILE"
-              echo "<h4>PSScriptAnalyzer Report - Masterbot</h4><pre>" >> "$REPORT_FILE"
-              pwsh -NoProfile -Command "
-              try {
-                \$files = Get-ChildItem -Path 'extracted_code/masterbot' -Recurse -Filter '*.ps1' -ErrorAction SilentlyContinue
-                if (\$files.Count -eq 0) {
-                  Write-Output 'No PowerShell files found in masterbot folder'
-                } else {
-                  Write-Output \"Found \$(\$files.Count) PowerShell files in masterbot\"
-                  foreach (\$file in \$files) {
-                    Write-Output \"\\n=== Analyzing: \$(\$file.Name) ===\"
-                    try {
-                      \$results = Invoke-ScriptAnalyzer -Path \$file.FullName -Severity Warning,Error -ErrorAction SilentlyContinue
-                      if (\$results.Count -eq 0) {
-                        Write-Output '✅ No issues found'
-                      } else {
-                        foreach (\$result in \$results) {
-                          Write-Output \"⚠️  \$(\$result.Severity): \$(\$result.RuleName)\"
-                          Write-Output \"   Line \$(\$result.Line): \$(\$result.Message)\"
-                          Write-Output \"   Suggestion: \$(\$result.SuggestedCorrections)\"
-                          Write-Output '---'
-                        }
-                      }
-                    } catch {
-                      Write-Output \"❌ Error analyzing \$(\$file.Name): \$(\$_.Exception.Message)\"
-                    }
-                  }
-                }
-              } catch {
-                Write-Output \"❌ PowerShell analysis failed for masterbot: \$(\$_.Exception.Message)\"
-              }" 2>&1 >> "$REPORT_FILE"
-              echo "</pre>" >> "$REPORT_FILE"
-            fi
-            
-            # Analyze Microbots PowerShell files
-            if [ "${{ steps.detect_lang.outputs.microbots_has_powershell }}" = "true" ]; then
-              echo "<h3>🤖 Microbots Scripts</h3>" >> "$REPORT_FILE"
-              echo "<h4>PSScriptAnalyzer Report - Microbots</h4><pre>" >> "$REPORT_FILE"
-              pwsh -NoProfile -Command "
-              try {
-                \$files = Get-ChildItem -Path 'extracted_code/microbots' -Recurse -Filter '*.ps1' -ErrorAction SilentlyContinue
-                if (\$files.Count -eq 0) {
-                  Write-Output 'No PowerShell files found in microbots folder'
-                } else {
-                  Write-Output \"Found \$(\$files.Count) PowerShell files in microbots\"
-                  foreach (\$file in \$files) {
-                    Write-Output \"\\n=== Analyzing: \$(\$file.Name) ===\"
-                    try {
-                      \$results = Invoke-ScriptAnalyzer -Path \$file.FullName -Severity Warning,Error -ErrorAction SilentlyContinue
-                      if (\$results.Count -eq 0) {
-                        Write-Output '✅ No issues found'
-                      } else {
-                        foreach (\$result in \$results) {
-                          Write-Output \"⚠️  \$(\$result.Severity): \$(\$result.RuleName)\"
-                          Write-Output \"   Line \$(\$result.Line): \$(\$result.Message)\"
-                          Write-Output \"   Suggestion: \$(\$result.SuggestedCorrections)\"
-                          Write-Output '---'
-                        }
-                      }
-                    } catch {
-                      Write-Output \"❌ Error analyzing \$(\$file.Name): \$(\$_.Exception.Message)\"
-                    }
-                  }
-                }
-              } catch {
-                Write-Output \"❌ PowerShell analysis failed for microbots: \$(\$_.Exception.Message)\"
-              }" 2>&1 >> "$REPORT_FILE"
-              echo "</pre>" >> "$REPORT_FILE"
-            fi
-            
-            # Analyze Other PowerShell files
-            if [ "${{ steps.detect_lang.outputs.other_has_powershell }}" = "true" ]; then
-              echo "<h3>📄 Other PowerShell Scripts</h3>" >> "$REPORT_FILE"
-              echo "<h4>PSScriptAnalyzer Report - Other Files</h4><pre>" >> "$REPORT_FILE"
-              pwsh -NoProfile -Command "
-              try {
-                \$files = Get-ChildItem -Path 'extracted_code' -Recurse -Filter '*.ps1' -ErrorAction SilentlyContinue | Where-Object { \$_.FullName -notlike '*masterbot*' -and \$_.FullName -notlike '*microbots*' }
-                if (\$files.Count -eq 0) {
-                  Write-Output 'No other PowerShell files found'
-                } else {
-                  Write-Output \"Found \$(\$files.Count) other PowerShell files\"
-                  foreach (\$file in \$files) {
-                    Write-Output \"\\n=== Analyzing: \$(\$file.Name) ===\"
-                    try {
-                      \$results = Invoke-ScriptAnalyzer -Path \$file.FullName -Severity Warning,Error -ErrorAction SilentlyContinue
-                      if (\$results.Count -eq 0) {
-                        Write-Output '✅ No issues found'
-                      } else {
-                        foreach (\$result in \$results) {
-                          Write-Output \"⚠️  \$(\$result.Severity): \$(\$result.RuleName)\"
-                          Write-Output \"   Line \$(\$result.Line): \$(\$result.Message)\"
-                          Write-Output \"   Suggestion: \$(\$result.SuggestedCorrections)\"
-                          Write-Output '---'
-                        }
-                      }
-                    } catch {
-                      Write-Output \"❌ Error analyzing \$(\$file.Name): \$(\$_.Exception.Message)\"
-                    }
-                  }
-                }
-              } catch {
-                Write-Output \"❌ PowerShell analysis failed for other files: \$(\$_.Exception.Message)\"
-              }" 2>&1 >> "$REPORT_FILE"
-              echo "</pre>" >> "$REPORT_FILE"
-            fi
-          fiSeverity): \$(\$result.RuleName) in \$(\$result.ScriptName) at line \$(\$result.Line)\"
+            echo "<h3>PSScriptAnalyzer Report</h3><pre>" >> "$REPORT_FILE"
+            pwsh -NoProfile -Command "
+            try {
+              \$files = Get-ChildItem -Path 'extracted_code' -Recurse -Filter '*.ps1' -ErrorAction SilentlyContinue
+              if (\$files.Count -eq 0) {
+                Write-Output 'No PowerShell files found for analysis'
+              } else {
+                foreach (\$file in \$files) {
+                  Write-Output \"Analyzing: \$(\$file.FullName)\"
+                  try {
+                    \$results = Invoke-ScriptAnalyzer -Path \$file.FullName -Severity Warning,Error -ErrorAction SilentlyContinue
+                    if (\$results.Count -eq 0) {
+                      Write-Output 'No issues found'
+                    } else {
+                      foreach (\$result in \$results) {
+                        Write-Output \"\$(\$result.Severity): \$(\$result.RuleName) in \$(\$result.ScriptName) at line \$(\$result.Line)\"
                         Write-Output \"\$(\$result.Message)\"
                         Write-Output '---'
                       }
