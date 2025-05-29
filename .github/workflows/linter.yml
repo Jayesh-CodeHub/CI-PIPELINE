@@ -20,113 +20,250 @@ jobs:
           latest_zip=$(find . -maxdepth 1 -type f -name "*.zip" -print0 | xargs -0 ls -t | head -n 1)
           if [ -z "$latest_zip" ]; then
             echo "No zip file found. Skipping analysis."
+            echo "skip_analysis=true" >> $GITHUB_OUTPUT
             exit 0
           fi
-          echo "latest_zip=$latest_zip" >> $GITHUB_ENV
+          echo "latest_zip=$latest_zip" >> $GITHUB_OUTPUT
+          echo "skip_analysis=false" >> $GITHUB_OUTPUT
 
       - name: Unzip and Extract Relevant Folders
+        if: steps.find_zip.outputs.skip_analysis != 'true'
         run: |
           mkdir -p extracted extracted_code
-          unzip -o "$latest_zip" -d extracted
-          find extracted -type d \( -name "masterbot" -o -name "microbots" \) -exec cp -r {} extracted_code/ \;
+          unzip -o "${{ steps.find_zip.outputs.latest_zip }}" -d extracted
+          
+          # Extract masterbot and microbots folders if they exist
+          if find extracted -type d -name "masterbot" | grep -q .; then
+            find extracted -type d -name "masterbot" -exec cp -r {} extracted_code/ \;
+          fi
+          if find extracted -type d -name "microbots" | grep -q .; then
+            find extracted -type d -name "microbots" -exec cp -r {} extracted_code/ \;
+          fi
+          
+          # Check if any code was extracted
+          if [ ! "$(ls -A extracted_code)" ]; then
+            echo "No masterbot or microbots folders found. Extracting all content."
+            cp -r extracted/* extracted_code/ 2>/dev/null || true
+          fi
 
       - name: Detect Languages
         id: detect_lang
+        if: steps.find_zip.outputs.skip_analysis != 'true'
         run: |
-          python_files=$(find extracted_code -type f -name "*.py")
-          bash_files=$(find extracted_code -type f -name "*.sh")
-          powershell_files=$(find extracted_code -type f -name "*.ps1")
-          if [ -n "$python_files" ]; then echo "python_detected=true" >> $GITHUB_ENV; fi
-          if [ -n "$bash_files" ]; then echo "bash_detected=true" >> $GITHUB_ENV; fi
-          if [ -n "$powershell_files" ]; then echo "powershell_detected=true" >> $GITHUB_ENV; fi
+          python_files=$(find extracted_code -type f -name "*.py" 2>/dev/null || true)
+          bash_files=$(find extracted_code -type f -name "*.sh" 2>/dev/null || true)
+          powershell_files=$(find extracted_code -type f -name "*.ps1" 2>/dev/null || true)
+          
+          if [ -n "$python_files" ]; then 
+            echo "python_detected=true" >> $GITHUB_OUTPUT
+            echo "Python files detected"
+          else
+            echo "python_detected=false" >> $GITHUB_OUTPUT
+          fi
+          
+          if [ -n "$bash_files" ]; then 
+            echo "bash_detected=true" >> $GITHUB_OUTPUT
+            echo "Bash files detected"
+          else
+            echo "bash_detected=false" >> $GITHUB_OUTPUT
+          fi
+          
+          if [ -n "$powershell_files" ]; then 
+            echo "powershell_detected=true" >> $GITHUB_OUTPUT
+            echo "PowerShell files detected"
+          else
+            echo "powershell_detected=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Install Dependencies
+      - name: Install Python Dependencies
+        if: steps.detect_lang.outputs.python_detected == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint flake8 bandit radon
+
+      - name: Install Bash Dependencies
+        if: steps.detect_lang.outputs.bash_detected == 'true'
         run: |
           sudo apt-get update
-          if [ "$python_detected" = "true" ]; then
-            pip install pylint flake8 bandit radon
-          fi
-          if [ "$bash_detected" = "true" ]; then
-            sudo apt-get install -y shellcheck
-          fi
-          if [ "$powershell_detected" = "true" ]; then
-            sudo apt-get install -y powershell
-            pwsh -Command "Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser"
-          fi
+          sudo apt-get install -y shellcheck
+
+      - name: Install PowerShell Dependencies
+        if: steps.detect_lang.outputs.powershell_detected == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y powershell
+          pwsh -Command "Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser"
 
       - name: Perform Linting and Security Analysis
         id: lint_step
+        if: steps.find_zip.outputs.skip_analysis != 'true'
         continue-on-error: true
         run: |
           mkdir -p reports
           TIMESTAMP=$(date +%s)
-          REPORT_FILE="reports/lint_report_${TIMESTAMP}.html"
-          echo "::set-output name=timestamp::$TIMESTAMP"
-          echo "::set-output name=report_file::$REPORT_FILE"
+          BRANCH_NAME="${{ github.ref_name }}"
+          REPORT_FILE="reports/lint_report_${BRANCH_NAME}_${TIMESTAMP}.html"
+          
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "report_file=$REPORT_FILE" >> $GITHUB_OUTPUT
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
-          echo "<html><head><title>Lint Report</title><style>" > "$REPORT_FILE"
-          echo "body { font-family: Arial, sans-serif; padding: 20px; } h1, h2 { color: #007bff; } pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }" >> "$REPORT_FILE"
-          echo "</style></head><body>" >> "$REPORT_FILE"
-          echo "<h1>Lint and Security Analysis Report</h1>" >> "$REPORT_FILE"
-          echo "<p>Generated on: $(date)</p>" >> "$REPORT_FILE"
+          # Create HTML report
+          cat > "$REPORT_FILE" << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Lint Report</title>
+              <style>
+                  body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
+                  .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                  h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+                  h3 { color: #495057; margin-top: 30px; }
+                  pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; border-left: 4px solid #007bff; }
+                  .summary { background: #e7f3ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+                  .error { color: #dc3545; }
+                  .warning { color: #ffc107; }
+                  .info { color: #17a2b8; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>🔍 Code Quality Analysis Report</h1>
+                  <div class="summary">
+                      <p><strong>Generated on:</strong> $(date)</p>
+                      <p><strong>Branch:</strong> $BRANCH_NAME</p>
+                      <p><strong>Repository:</strong> ${{ github.repository }}</p>
+                  </div>
+          EOF
 
-          if [ "$python_detected" = "true" ]; then
-            echo "<h2>Python Code Analysis</h2>" >> "$REPORT_FILE"
+          # Python Analysis
+          if [ "${{ steps.detect_lang.outputs.python_detected }}" = "true" ]; then
+            echo "<h2>🐍 Python Code Analysis</h2>" >> "$REPORT_FILE"
+            
+            # Pylint
             echo "<h3>Pylint Report</h3><pre>" >> "$REPORT_FILE"
-            find extracted_code -type f -name "*.py" -print0 | xargs -0 pylint --output-format=parseable 2>&1 >> "$REPORT_FILE"
+            if find extracted_code -type f -name "*.py" -print0 | xargs -0 pylint --output-format=parseable --exit-zero 2>&1 >> "$REPORT_FILE"; then
+              echo "Pylint analysis completed successfully" >> "$REPORT_FILE"
+            else
+              echo "Pylint analysis encountered issues" >> "$REPORT_FILE"
+            fi
             echo "</pre>" >> "$REPORT_FILE"
 
+            # Flake8
             echo "<h3>Flake8 Report</h3><pre>" >> "$REPORT_FILE"
-            find extracted_code -type f -name "*.py" -print0 | xargs -0 flake8 --format=default 2>&1 >> "$REPORT_FILE"
+            if find extracted_code -type f -name "*.py" -print0 | xargs -0 flake8 --format=default --exit-zero 2>&1 >> "$REPORT_FILE"; then
+              echo "Flake8 analysis completed successfully" >> "$REPORT_FILE"
+            else
+              echo "Flake8 analysis encountered issues" >> "$REPORT_FILE"
+            fi
             echo "</pre>" >> "$REPORT_FILE"
 
-            echo "<h3>Security Analysis (Bandit)</h3><pre>" >> "$REPORT_FILE"
-            bandit -r extracted_code 2>&1 >> "$REPORT_FILE"
+            # Bandit Security Analysis
+            echo "<h3>🔒 Security Analysis (Bandit)</h3><pre>" >> "$REPORT_FILE"
+            if bandit -r extracted_code --exit-zero 2>&1 >> "$REPORT_FILE"; then
+              echo "Security analysis completed successfully" >> "$REPORT_FILE"
+            else
+              echo "Security analysis encountered issues" >> "$REPORT_FILE"
+            fi
             echo "</pre>" >> "$REPORT_FILE"
 
-            echo "<h3>Code Complexity (Radon)</h3><pre>" >> "$REPORT_FILE"
-            find extracted_code -type f -name "*.py" -print0 | xargs -0 radon cc -a 2>&1 >> "$REPORT_FILE"
+            # Code Complexity
+            echo "<h3>📊 Code Complexity (Radon)</h3><pre>" >> "$REPORT_FILE"
+            if find extracted_code -type f -name "*.py" -print0 | xargs -0 radon cc -a --exit-zero 2>&1 >> "$REPORT_FILE"; then
+              echo "Complexity analysis completed successfully" >> "$REPORT_FILE"
+            else
+              echo "Complexity analysis encountered issues" >> "$REPORT_FILE"
+            fi
             echo "</pre>" >> "$REPORT_FILE"
           fi
 
-          if [ "$bash_detected" = "true" ]; then
-            echo "<h2>Bash Code Analysis</h2>" >> "$REPORT_FILE"
+          # Bash Analysis
+          if [ "${{ steps.detect_lang.outputs.bash_detected }}" = "true" ]; then
+            echo "<h2>🐚 Bash Code Analysis</h2>" >> "$REPORT_FILE"
             echo "<h3>ShellCheck Report</h3><pre>" >> "$REPORT_FILE"
-            find extracted_code -type f -name "*.sh" -print0 | xargs -0 shellcheck 2>&1 >> "$REPORT_FILE"
+            if find extracted_code -type f -name "*.sh" -print0 | xargs -0 shellcheck --format=gcc 2>&1 >> "$REPORT_FILE"; then
+              echo "ShellCheck analysis completed successfully" >> "$REPORT_FILE"
+            else
+              echo "ShellCheck analysis encountered issues" >> "$REPORT_FILE"
+            fi
             echo "</pre>" >> "$REPORT_FILE"
           fi
 
-          if [ "$powershell_detected" = "true" ]; then
-            echo "<h2>PowerShell Code Analysis</h2>" >> "$REPORT_FILE"
+          # PowerShell Analysis
+          if [ "${{ steps.detect_lang.outputs.powershell_detected }}" = "true" ]; then
+            echo "<h2>💻 PowerShell Code Analysis</h2>" >> "$REPORT_FILE"
             echo "<h3>PSScriptAnalyzer Report</h3><pre>" >> "$REPORT_FILE"
             pwsh -NoProfile -Command "
-            $files = Get-ChildItem -Path extracted_code -Recurse -Filter '*.ps1'
-            foreach ($file in $files) {
-              Write-Output \"Analyzing: $($file.FullName)\"
-              $results = Invoke-ScriptAnalyzer -Path $file.FullName -Severity Warning,Error
-              foreach ($result in $results) {
-                Write-Output \"$($result.Severity): $($result.RuleName) in $($result.ScriptName) at line $($result.Line)`n$($result.Message)\"
+            try {
+              \$files = Get-ChildItem -Path 'extracted_code' -Recurse -Filter '*.ps1' -ErrorAction SilentlyContinue
+              if (\$files.Count -eq 0) {
+                Write-Output 'No PowerShell files found for analysis'
+              } else {
+                foreach (\$file in \$files) {
+                  Write-Output \"Analyzing: \$(\$file.FullName)\"
+                  try {
+                    \$results = Invoke-ScriptAnalyzer -Path \$file.FullName -Severity Warning,Error -ErrorAction SilentlyContinue
+                    if (\$results.Count -eq 0) {
+                      Write-Output 'No issues found'
+                    } else {
+                      foreach (\$result in \$results) {
+                        Write-Output \"\$(\$result.Severity): \$(\$result.RuleName) in \$(\$result.ScriptName) at line \$(\$result.Line)\"
+                        Write-Output \"\$(\$result.Message)\"
+                        Write-Output '---'
+                      }
+                    }
+                  } catch {
+                    Write-Output \"Error analyzing \$(\$file.Name): \$(\$_.Exception.Message)\"
+                  }
+                }
               }
+            } catch {
+              Write-Output \"PowerShell analysis failed: \$(\$_.Exception.Message)\"
             }" 2>&1 >> "$REPORT_FILE"
             echo "</pre>" >> "$REPORT_FILE"
           fi
 
-          echo "</body></html>" >> "$REPORT_FILE"
+          # Close HTML
+          echo "</div></body></html>" >> "$REPORT_FILE"
+          
+          echo "Report generated: $REPORT_FILE"
+          ls -la "$REPORT_FILE"
 
       - name: Commit and Push Report
-        if: always()
+        if: always() && steps.find_zip.outputs.skip_analysis != 'true'
         run: |
-          branch_name="${{ github.ref_name }}"
-          mkdir -p reports_dir/"$branch_name"
-          mv "${{ steps.lint_step.outputs.report_file }}" reports_dir/"$branch_name"/ || true
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git add reports_dir/ || true
-          git commit -m "Add lint report for latest zip" || echo "No changes to commit"
-          git push origin "$branch_name" || echo "No changes to push"
+          branch_name="${{ steps.lint_step.outputs.branch_name }}"
+          timestamp="${{ steps.lint_step.outputs.timestamp }}"
+          report_file="${{ steps.lint_step.outputs.report_file }}"
+          
+          # Create reports directory structure
+          mkdir -p "reports_archive/$branch_name"
+          
+          # Copy report to archive location
+          if [ -f "$report_file" ]; then
+            cp "$report_file" "reports_archive/$branch_name/"
+            echo "Report copied to reports_archive/$branch_name/"
+          else
+            echo "Warning: Report file not found at $report_file"
+            exit 1
+          fi
+          
+          # Configure git
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Add and commit changes
+          git add reports_archive/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add lint report for branch $branch_name (timestamp: $timestamp)"
+            git push origin "$branch_name"
+            echo "✅ Report committed and pushed to repository"
+          fi
 
       - name: Upload Report to SharePoint using Microsoft Graph API
-        if: always()
+        if: always() && steps.find_zip.outputs.skip_analysis != 'true'
         env:
           TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
           CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}
@@ -134,31 +271,116 @@ jobs:
           SITE_URL: "https://n1pw.sharepoint.com/sites/CIpipeline-testing"
           FOLDER_PATH: "Shared Documents/Reports"
         run: |
+          # Install required tools
           sudo apt-get install -y curl jq
-
-          token_response=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&scope=https://graph.microsoft.com/.default" \
-            https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token)
-
-          access_token=$(echo "$token_response" | jq -r '.access_token')
-
-          site_id=$(curl -s -X GET -H "Authorization: Bearer $access_token" \
-            "https://graph.microsoft.com/v1.0/sites/n1pw.sharepoint.com:/sites/CIpipeline-testing" | jq -r '.id')
-
-          parent_id=$(curl -s -X GET -H "Authorization: Bearer $access_token" \
-            "https://graph.microsoft.com/v1.0/sites/$site_id/drive/root:/Shared Documents/Reports" | jq -r '.id')
-
-          branch_name="${{ github.ref_name }}"
+          
+          branch_name="${{ steps.lint_step.outputs.branch_name }}"
           timestamp="${{ steps.lint_step.outputs.timestamp }}"
-          report_file_path="reports_dir/$branch_name/lint_report_${timestamp}.html"
-
-          upload_url="https://graph.microsoft.com/v1.0/sites/$site_id/drive/items/$parent_id:/lint_report_${branch_name}_${timestamp}.html:/content"
-
-          echo "Uploading to: $upload_url"
-
-          curl -X PUT "$upload_url" \
+          report_file="${{ steps.lint_step.outputs.report_file }}"
+          
+          echo "🔐 Authenticating with Microsoft Graph API..."
+          
+          # Get access token
+          token_response=$(curl -s -X POST \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&scope=https://graph.microsoft.com/.default" \
+            "https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token")
+          
+          # Check if token request was successful
+          if [ $? -ne 0 ]; then
+            echo "❌ Failed to make token request"
+            exit 1
+          fi
+          
+          access_token=$(echo "$token_response" | jq -r '.access_token')
+          
+          if [ "$access_token" = "null" ] || [ -z "$access_token" ]; then
+            echo "❌ Failed to get access token"
+            echo "Token response: $token_response"
+            exit 1
+          fi
+          
+          echo "✅ Successfully obtained access token"
+          
+          # Get site ID
+          echo "🔍 Getting SharePoint site ID..."
+          site_response=$(curl -s -X GET \
+            -H "Authorization: Bearer $access_token" \
+            -H "Accept: application/json" \
+            "https://graph.microsoft.com/v1.0/sites/n1pw.sharepoint.com:/sites/CIpipeline-testing")
+          
+          site_id=$(echo "$site_response" | jq -r '.id')
+          
+          if [ "$site_id" = "null" ] || [ -z "$site_id" ]; then
+            echo "❌ Failed to get site ID"
+            echo "Site response: $site_response"
+            exit 1
+          fi
+          
+          echo "✅ Site ID obtained: $site_id"
+          
+          # Get or create Reports folder
+          echo "📁 Accessing Reports folder..."
+          folder_response=$(curl -s -X GET \
+            -H "Authorization: Bearer $access_token" \
+            -H "Accept: application/json" \
+            "https://graph.microsoft.com/v1.0/sites/$site_id/drive/root:/Shared%20Documents/Reports")
+          
+          parent_id=$(echo "$folder_response" | jq -r '.id')
+          
+          if [ "$parent_id" = "null" ] || [ -z "$parent_id" ]; then
+            echo "⚠️ Reports folder not found, creating it..."
+            create_folder_response=$(curl -s -X POST \
+              -H "Authorization: Bearer $access_token" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"Reports","folder":{}}' \
+              "https://graph.microsoft.com/v1.0/sites/$site_id/drive/root:/Shared%20Documents:/children")
+            
+            parent_id=$(echo "$create_folder_response" | jq -r '.id')
+            
+            if [ "$parent_id" = "null" ] || [ -z "$parent_id" ]; then
+              echo "❌ Failed to create Reports folder"
+              echo "Create folder response: $create_folder_response"
+              exit 1
+            fi
+            echo "✅ Reports folder created"
+          else
+            echo "✅ Reports folder found"
+          fi
+          
+          # Upload file
+          if [ ! -f "$report_file" ]; then
+            echo "❌ Report file not found: $report_file"
+            exit 1
+          fi
+          
+          file_name="lint_report_${branch_name}_${timestamp}.html"
+          upload_url="https://graph.microsoft.com/v1.0/sites/$site_id/drive/items/$parent_id:/$file_name:/content"
+          
+          echo "📤 Uploading report to SharePoint..."
+          echo "Upload URL: $upload_url"
+          echo "File: $report_file"
+          
+          upload_response=$(curl -s -w "%{http_code}" -X PUT "$upload_url" \
             -H "Authorization: Bearer $access_token" \
             -H "Content-Type: text/html" \
-            --data-binary @"$report_file_path"
-
-          echo '✅ Report uploaded to SharePoint using Microsoft Graph API.'
+            --data-binary "@$report_file")
+          
+          http_code="${upload_response: -3}"
+          response_body="${upload_response%???}"
+          
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "✅ Report successfully uploaded to SharePoint!"
+            echo "File name: $file_name"
+            
+            # Extract file URL if available
+            file_url=$(echo "$response_body" | jq -r '.webUrl // empty')
+            if [ -n "$file_url" ]; then
+              echo "🔗 File URL: $file_url"
+            fi
+          else
+            echo "❌ Failed to upload report to SharePoint"
+            echo "HTTP Code: $http_code"
+            echo "Response: $response_body"
+            exit 1
+          fi
