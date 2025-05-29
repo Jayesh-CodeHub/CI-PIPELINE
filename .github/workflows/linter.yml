@@ -1,3 +1,4 @@
+
 name: Lint and Analyze Code from ZIP
 
 on:
@@ -111,9 +112,9 @@ jobs:
               if ((\$files.Count -eq 0)) {
                 Write-Host 'No PowerShell files found'
               } else {
-                Write-Host \"Found \$($files.Count) PowerShell files\"
+                Write-Host "Found \$($files.Count) PowerShell files"
                 \$files | ForEach-Object {
-                  Write-Host \"Analyzing: \$($_.FullName)\"
+                  Write-Host "Analyzing: \$($_.FullName)"
                   Invoke-ScriptAnalyzer -Path \$_.FullName -Severity Warning,Error
                 }
               }
@@ -164,16 +165,15 @@ jobs:
           # Get Site ID
           $siteInfo = Invoke-RestMethod -Headers @{Authorization = "Bearer $accessToken"} `
             -Uri "https://graph.microsoft.com/v1.0/sites/${siteDomain}:/sites/${siteName}"
-
           $siteId = $siteInfo.id
 
           # Get Drive ID (Documents library)
           $driveInfo = Invoke-RestMethod -Headers @{Authorization = "Bearer $accessToken"} `
-            -Uri "https://graph.microsoft.com/v1.0/sites/$siteId/drives"
+            -Uri "https://graph.microsoft.com/v1.0/sites/${siteId}/drives"
           $driveId = ($driveInfo.value | Where-Object { $_.name -eq "Documents" }).id
 
           # Upload file to Reports folder
-          $uploadUrl = "https://graph.microsoft.com/v1.0/drives/$driveId/root:/Reports/$branchName/$reportFileName:/content"
+          $uploadUrl = "https://graph.microsoft.com/v1.0/drives/${driveId}/root:/Reports/${branchName}/${reportFileName}:/content"
           Invoke-RestMethod -Headers @{Authorization = "Bearer $accessToken"} `
             -Uri $uploadUrl -Method PUT -InFile $reportFilePath -ContentType "text/html"
 
