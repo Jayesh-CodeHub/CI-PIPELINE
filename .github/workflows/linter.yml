@@ -1,5 +1,4 @@
 name: Lint and Analyze Code from ZIP
-
 on:
   push:
     paths:
@@ -37,27 +36,20 @@ jobs:
           python_files=$(find extracted_code -type f -name "*.py")
           bash_files=$(find extracted_code -type f -name "*.sh")
           powershell_files=$(find extracted_code -type f -name "*.ps1")
-          if [ -n "$python_files" ]; then
-            echo "python_detected=true" >> $GITHUB_ENV
-          fi
-          if [ -n "$bash_files" ]; then
-            echo "bash_detected=true" >> $GITHUB_ENV
-          fi
-          if [ -n "$powershell_files" ]; then
-            echo "powershell_detected=true" >> $GITHUB_ENV
-          fi
+          if [ -n "$python_files" ]; then echo "python_detected=true" >> $GITHUB_ENV; fi
+          if [ -n "$bash_files" ]; then echo "bash_detected=true" >> $GITHUB_ENV; fi
+          if [ -n "$powershell_files" ]; then echo "powershell_detected=true" >> $GITHUB_ENV; fi
 
       - name: Install Dependencies
         run: |
+          sudo apt-get update
           if [ "$python_detected" = "true" ]; then
             pip install pylint flake8 bandit radon
           fi
           if [ "$bash_detected" = "true" ]; then
-            sudo apt-get update
             sudo apt-get install -y shellcheck
           fi
           if [ "$powershell_detected" = "true" ]; then
-            sudo apt-get update
             sudo apt-get install -y powershell
             pwsh -Command "Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser"
           fi
@@ -85,7 +77,7 @@ jobs:
             echo "</pre>" >> "$REPORT_FILE"
 
             echo "<h3>Security Analysis (Bandit)</h3><pre>" >> "$REPORT_FILE"
-            bandit -r extracted_code -f html -o reports/bandit_report.html 2>&1 | tee -a "$REPORT_FILE" || true
+            bandit -r extracted_code 2>&1 | tee -a "$REPORT_FILE" || true
             echo "</pre>" >> "$REPORT_FILE"
 
             echo "<h3>Code Complexity (Radon)</h3><pre>" >> "$REPORT_FILE"
@@ -103,22 +95,17 @@ jobs:
           if [ "$powershell_detected" = "true" ]; then
             echo "<h2>PowerShell Code Analysis</h2>" >> "$REPORT_FILE"
             echo "<h3>PSScriptAnalyzer Report</h3><pre>" >> "$REPORT_FILE"
-            pwsh -NoProfile -Command @'
-            $ErrorActionPreference = "Continue"
-            $files = Get-ChildItem -Path "extracted_code" -Recurse -Filter "*.ps1"
-            if ($files.Count -eq 0) {
-              Write-Output "No PowerShell files found"
-            } else {
-              foreach ($file in $files) {
-                Write-Output "Analyzing: $($file.FullName)"
-                Invoke-ScriptAnalyzer -Path $file.FullName -Severity Warning,Error |
-                ForEach-Object {
-                  "$($_.Severity): $($_.RuleName) in $($_.ScriptName) at line $($_.Line)`n$($_.Message)`n"
-                }
+            pwsh -NoProfile -Command "
+            $ErrorActionPreference = 'Continue'
+            $files = Get-ChildItem -Path extracted_code -Recurse -Filter '*.ps1'
+            foreach ($file in $files) {
+              Write-Output \"Analyzing: $($file.FullName)\"
+              $results = Invoke-ScriptAnalyzer -Path $file.FullName -Severity Warning,Error
+              foreach ($result in $results) {
+                Write-Output \"$($result.Severity): $($result.RuleName) in $($result.ScriptName) at line $($result.Line)`n$($result.Message)\"
               }
             }
-            '@ > ps_report.txt
-            cat ps_report.txt >> "$REPORT_FILE"
+            " 2>&1 | tee -a "$REPORT_FILE" || true
             echo "</pre>" >> "$REPORT_FILE"
           fi
 
@@ -138,40 +125,40 @@ jobs:
           git commit -m "Add lint report for latest zip" || echo "No changes to commit"
           git push origin "$branch_name" || echo "No changes to push"
 
-      - name: Upload Report to SharePoint via Microsoft Graph API
+      - name: Upload Report to SharePoint using Microsoft Graph API
+        if: always()
         env:
           TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
           CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.SHAREPOINT_CLIENT_SECRET }}
           SITE_URL: "https://n1pw.sharepoint.com/sites/CIpipeline-testing"
-          SHAREPOINT_FOLDER_PATH: "Shared Documents/Reports"
+          FOLDER_PATH: "Shared Documents/Reports"
         run: |
           sudo apt-get install -y curl jq
 
-          # Get Access Token
           token_response=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
             -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&scope=https://graph.microsoft.com/.default" \
             https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token)
 
           access_token=$(echo "$token_response" | jq -r '.access_token')
 
-          if [ -z "$access_token" ] || [ "$access_token" == "null" ]; then
-            echo "❌ Failed to acquire Microsoft Graph token"
-            echo "$token_response"
-            exit 1
-          fi
+          site_id=$(curl -s -X GET -H "Authorization: Bearer $access_token" \
+            "https://graph.microsoft.com/v1.0/sites/n1pw.sharepoint.com:/sites/CIpipeline-testing" | jq -r '.id')
 
-          # Upload the report
+          parent_id=$(curl -s -X GET -H "Authorization: Bearer $access_token" \
+            "https://graph.microsoft.com/v1.0/sites/$site_id/drive/root:/Shared Documents/Reports" | jq -r '.id')
+
           branch_name="${{ github.ref_name }}"
-          report_file="reports_dir/$branch_name/lint_report_${{ env.timestamp }}.html"
-          file_name="lint_report_${branch_name}_${{ env.timestamp }}.html"
+          report_file_name="lint_report_${branch_name}_${{ env.timestamp }}.html"
+          report_file_path="reports_dir/$branch_name/lint_report_${{ env.timestamp }}.html"
 
-          upload_url="https://graph.microsoft.com/v1.0/sites/n1pw.sharepoint.com:/sites/CIpipeline-testing:/drive/root:/${SHAREPOINT_FOLDER_PATH}/$file_name:/content"
+          upload_url="https://graph.microsoft.com/v1.0/sites/$site_id/drive/items/$parent_id:/lint_report_${branch_name}_${{ env.timestamp }}.html:/content"
 
-          curl -X PUT \
+          echo "Uploading to: $upload_url"
+
+          curl -X PUT "$upload_url" \
             -H "Authorization: Bearer $access_token" \
             -H "Content-Type: text/html" \
-            --data-binary @$report_file \
-            "$upload_url"
+            --data-binary @"$report_file_path"
 
-          echo "✅ Report uploaded to SharePoint via Microsoft Graph API."
+          echo '✅ Report uploaded to SharePoint using Microsoft Graph API.'
