@@ -11,7 +11,6 @@ permissions:
 jobs:
   process-zip:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -32,29 +31,6 @@ jobs:
           unzip -o "$latest_zip" -d extracted
           find extracted -type d \( -name "masterbot" -o -name "microbots" \) -exec cp -r {} extracted_code/ \;
           true
-
-      - name: Verify PowerShell Setup
-        run: |
-          echo "Checking PowerShell Installation"
-          pwsh --version
-          echo "Checking PowerShell Modules"
-          pwsh -Command "Get-Module -ListAvailable PSScriptAnalyzer"
-          echo "Finding PowerShell Files"
-          find extracted_code -type f -name "*.ps1"
-          echo "Attempting Manual PSScriptAnalyzer Scan"
-          pwsh -Command "
-          \$ErrorActionPreference = 'Continue'
-          \$files = Get-ChildItem -Path extracted_code -Recurse -Filter '*.ps1'
-          if (\$files.Count -eq 0) {
-            Write-Host 'No PowerShell files found'
-          } else {
-            Write-Host \"Found \$($files.Count) PowerShell files\"
-            \$files | ForEach-Object {
-              Write-Host \"Analyzing: \$($_.FullName)\"
-              Invoke-ScriptAnalyzer -Path \$_.FullName -Severity Warning,Error
-            }
-          }
-          "
 
       - name: Detect Languages
         run: |
@@ -127,20 +103,22 @@ jobs:
           if [ "$powershell_detected" = "true" ]; then
             echo "<h2>PowerShell Code Analysis</h2>" >> "$REPORT_FILE"
             echo "<h3>PSScriptAnalyzer Report</h3><pre>" >> "$REPORT_FILE"
-            pwsh -NoProfile -Command "
-            \$ErrorActionPreference = 'Continue'
-            \$files = Get-ChildItem -Path extracted_code -Recurse -Filter '*.ps1'
-            if (\$files.Count -eq 0) {
-              Write-Host 'No PowerShell files found'
+            pwsh -NoProfile -Command @'
+            $ErrorActionPreference = "Continue"
+            $files = Get-ChildItem -Path "extracted_code" -Recurse -Filter "*.ps1"
+            if ($files.Count -eq 0) {
+              Write-Output "No PowerShell files found"
             } else {
-              \$files | ForEach-Object {
-                Write-Host \"Analyzing: \$($_.FullName)\"
-                Invoke-ScriptAnalyzer -Path \$_.FullName -Severity Warning,Error |
+              foreach ($file in $files) {
+                Write-Output "Analyzing: $($file.FullName)"
+                Invoke-ScriptAnalyzer -Path $file.FullName -Severity Warning,Error |
                 ForEach-Object {
-                  \"\$($_.Severity): \$($_.RuleName) in \$($_.ScriptName) at line \$($_.Line)\n\$($_.Message)\"
+                  "$($_.Severity): $($_.RuleName) in $($_.ScriptName) at line $($_.Line)`n$($_.Message)`n"
                 }
               }
-            }" 2>&1 | tee -a "$REPORT_FILE" || true
+            }
+            '@ > ps_report.txt
+            cat ps_report.txt >> "$REPORT_FILE"
             echo "</pre>" >> "$REPORT_FILE"
           fi
 
@@ -160,42 +138,40 @@ jobs:
           git commit -m "Add lint report for latest zip" || echo "No changes to commit"
           git push origin "$branch_name" || echo "No changes to push"
 
-      - name: Upload Report to SharePoint using Graph API
-        if: always()
+      - name: Upload Report to SharePoint via Microsoft Graph API
         env:
           TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
           CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.SHAREPOINT_CLIENT_SECRET }}
-          SITE_HOST: "n1pw.sharepoint.com"
-          SITE_PATH: "sites/CIpipeline-testing"
-          REPORT_FILE: "reports_dir/${{ github.ref_name }}/lint_report_${{ env.timestamp }}.html"
-          REPORT_NAME: "lint_report_${{ github.ref_name }}_${{ env.timestamp }}.html"
-          UPLOAD_FOLDER: "Shared Documents/Reports"
+          SITE_URL: "https://n1pw.sharepoint.com/sites/CIpipeline-testing"
+          SHAREPOINT_FOLDER_PATH: "Shared Documents/Reports"
         run: |
-          echo "Getting access token..."
-          access_token=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&scope=https://graph.microsoft.com/.default" \
-            | jq -r .access_token)
+          sudo apt-get install -y curl jq
 
-          if [ -z "$access_token" ]; then
-            echo "❌ Failed to get access token"
+          # Get Access Token
+          token_response=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&scope=https://graph.microsoft.com/.default" \
+            https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token)
+
+          access_token=$(echo "$token_response" | jq -r '.access_token')
+
+          if [ -z "$access_token" ] || [ "$access_token" == "null" ]; then
+            echo "❌ Failed to acquire Microsoft Graph token"
+            echo "$token_response"
             exit 1
           fi
 
-          echo "Getting site ID..."
-          site_id=$(curl -s -H "Authorization: Bearer $access_token" \
-            "https://graph.microsoft.com/v1.0/sites/$SITE_HOST:/$(echo $SITE_PATH | sed 's|/|%2F|g')" | jq -r .id)
+          # Upload the report
+          branch_name="${{ github.ref_name }}"
+          report_file="reports_dir/$branch_name/lint_report_${{ env.timestamp }}.html"
+          file_name="lint_report_${branch_name}_${{ env.timestamp }}.html"
 
-          echo "Getting drive ID..."
-          drive_id=$(curl -s -H "Authorization: Bearer $access_token" \
-            "https://graph.microsoft.com/v1.0/sites/$site_id/drives" | jq -r '.value[0].id')
+          upload_url="https://graph.microsoft.com/v1.0/sites/n1pw.sharepoint.com:/sites/CIpipeline-testing:/drive/root:/${SHAREPOINT_FOLDER_PATH}/$file_name:/content"
 
-          echo "Uploading $REPORT_FILE to SharePoint..."
           curl -X PUT \
             -H "Authorization: Bearer $access_token" \
             -H "Content-Type: text/html" \
-            --data-binary @"$REPORT_FILE" \
-            "https://graph.microsoft.com/v1.0/sites/$site_id/drives/$drive_id/root:/$(echo $UPLOAD_FOLDER | sed 's| |%20|g')/$REPORT_NAME:/content"
+            --data-binary @$report_file \
+            "$upload_url"
 
-          echo "✅ Report uploaded to SharePoint using Microsoft Graph API."
+          echo "✅ Report uploaded to SharePoint via Microsoft Graph API."
