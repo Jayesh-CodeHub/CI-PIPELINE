@@ -29,9 +29,9 @@ jobs:
           mkdir -p extracted extracted_code
           unzip -o "$latest_zip" -d extracted
           find extracted -type d \( -name "masterbot" -o -name "microbots" \) -exec cp -r {} extracted_code/ \;
-          true
 
       - name: Detect Languages
+        id: detect_lang
         run: |
           python_files=$(find extracted_code -type f -name "*.py")
           bash_files=$(find extracted_code -type f -name "*.sh")
@@ -55,11 +55,15 @@ jobs:
           fi
 
       - name: Perform Linting and Security Analysis
+        id: lint_step
         continue-on-error: true
         run: |
           mkdir -p reports
           TIMESTAMP=$(date +%s)
           REPORT_FILE="reports/lint_report_${TIMESTAMP}.html"
+          echo "::set-output name=timestamp::$TIMESTAMP"
+          echo "::set-output name=report_file::$REPORT_FILE"
+
           echo "<html><head><title>Lint Report</title><style>" > "$REPORT_FILE"
           echo "body { font-family: Arial, sans-serif; padding: 20px; } h1, h2 { color: #007bff; } pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }" >> "$REPORT_FILE"
           echo "</style></head><body>" >> "$REPORT_FILE"
@@ -69,26 +73,26 @@ jobs:
           if [ "$python_detected" = "true" ]; then
             echo "<h2>Python Code Analysis</h2>" >> "$REPORT_FILE"
             echo "<h3>Pylint Report</h3><pre>" >> "$REPORT_FILE"
-            find extracted_code -type f -name "*.py" -print0 | xargs -0 pylint --output-format=parseable 2>&1 | tee -a "$REPORT_FILE" || true
+            find extracted_code -type f -name "*.py" -print0 | xargs -0 pylint --output-format=parseable 2>&1 >> "$REPORT_FILE"
             echo "</pre>" >> "$REPORT_FILE"
 
             echo "<h3>Flake8 Report</h3><pre>" >> "$REPORT_FILE"
-            find extracted_code -type f -name "*.py" -print0 | xargs -0 flake8 --format=default 2>&1 | tee -a "$REPORT_FILE" || true
+            find extracted_code -type f -name "*.py" -print0 | xargs -0 flake8 --format=default 2>&1 >> "$REPORT_FILE"
             echo "</pre>" >> "$REPORT_FILE"
 
             echo "<h3>Security Analysis (Bandit)</h3><pre>" >> "$REPORT_FILE"
-            bandit -r extracted_code 2>&1 | tee -a "$REPORT_FILE" || true
+            bandit -r extracted_code 2>&1 >> "$REPORT_FILE"
             echo "</pre>" >> "$REPORT_FILE"
 
             echo "<h3>Code Complexity (Radon)</h3><pre>" >> "$REPORT_FILE"
-            find extracted_code -type f -name "*.py" -print0 | xargs -0 radon cc -a 2>&1 | tee -a "$REPORT_FILE" || true
+            find extracted_code -type f -name "*.py" -print0 | xargs -0 radon cc -a 2>&1 >> "$REPORT_FILE"
             echo "</pre>" >> "$REPORT_FILE"
           fi
 
           if [ "$bash_detected" = "true" ]; then
             echo "<h2>Bash Code Analysis</h2>" >> "$REPORT_FILE"
             echo "<h3>ShellCheck Report</h3><pre>" >> "$REPORT_FILE"
-            find extracted_code -type f -name "*.sh" -print0 | xargs -0 shellcheck 2>&1 | tee -a "$REPORT_FILE" || true
+            find extracted_code -type f -name "*.sh" -print0 | xargs -0 shellcheck 2>&1 >> "$REPORT_FILE"
             echo "</pre>" >> "$REPORT_FILE"
           fi
 
@@ -96,7 +100,6 @@ jobs:
             echo "<h2>PowerShell Code Analysis</h2>" >> "$REPORT_FILE"
             echo "<h3>PSScriptAnalyzer Report</h3><pre>" >> "$REPORT_FILE"
             pwsh -NoProfile -Command "
-            $ErrorActionPreference = 'Continue'
             $files = Get-ChildItem -Path extracted_code -Recurse -Filter '*.ps1'
             foreach ($file in $files) {
               Write-Output \"Analyzing: $($file.FullName)\"
@@ -104,21 +107,18 @@ jobs:
               foreach ($result in $results) {
                 Write-Output \"$($result.Severity): $($result.RuleName) in $($result.ScriptName) at line $($result.Line)`n$($result.Message)\"
               }
-            }
-            " 2>&1 | tee -a "$REPORT_FILE" || true
+            }" 2>&1 >> "$REPORT_FILE"
             echo "</pre>" >> "$REPORT_FILE"
           fi
 
           echo "</body></html>" >> "$REPORT_FILE"
-          echo "report_file=$REPORT_FILE" >> $GITHUB_ENV
-          echo "timestamp=$TIMESTAMP" >> $GITHUB_ENV
 
       - name: Commit and Push Report
         if: always()
         run: |
           branch_name="${{ github.ref_name }}"
           mkdir -p reports_dir/"$branch_name"
-          mv reports/lint_report_*.html reports_dir/"$branch_name"/ || true
+          mv "${{ steps.lint_step.outputs.report_file }}" reports_dir/"$branch_name"/ || true
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git add reports_dir/ || true
@@ -149,10 +149,10 @@ jobs:
             "https://graph.microsoft.com/v1.0/sites/$site_id/drive/root:/Shared Documents/Reports" | jq -r '.id')
 
           branch_name="${{ github.ref_name }}"
-          report_file_name="lint_report_${branch_name}_${{ env.timestamp }}.html"
-          report_file_path="reports_dir/$branch_name/lint_report_${{ env.timestamp }}.html"
+          timestamp="${{ steps.lint_step.outputs.timestamp }}"
+          report_file_path="reports_dir/$branch_name/lint_report_${timestamp}.html"
 
-          upload_url="https://graph.microsoft.com/v1.0/sites/$site_id/drive/items/$parent_id:/lint_report_${branch_name}_${{ env.timestamp }}.html:/content"
+          upload_url="https://graph.microsoft.com/v1.0/sites/$site_id/drive/items/$parent_id:/lint_report_${branch_name}_${timestamp}.html:/content"
 
           echo "Uploading to: $upload_url"
 
