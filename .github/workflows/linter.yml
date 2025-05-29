@@ -135,25 +135,50 @@ jobs:
           git commit -m "Add lint report for latest zip" || echo "No changes to commit"
           git push origin "${branch_name}" || echo "No changes to push"
 
-      - name: Install PnP PowerShell
-        run: |
-          pwsh -Command "Install-Module -Name PnP.PowerShell -Force -AllowClobber -Scope CurrentUser"
-
-      - name: Upload Report to SharePoint using App Registration
+      - name: Upload Report to SharePoint using Microsoft Graph API
         if: always()
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $siteUrl = "https://$($env:tenantId).sharepoint.com/sites/$($env:branchName)"
+
+          $tenantId = "${{ secrets.SHAREPOINT_TENANT_ID }}"
+          $clientId = "${{ secrets.SHAREPOINT_CLIENT_ID }}"
+          $clientSecret = "${{ secrets.SHAREPOINT_CLIENT_SECRET }}"
+          $siteName = "CIpipeline-testing"
+          $siteDomain = "n1pw.sharepoint.com"
+          $branchName = "${{ github.ref_name }}"
           $reportFilePath = "${{ env.report_file }}"
-          $folderPath = "Shared Documents/Reports/$($env:branchName)"
           $reportFileName = "lint_report_${{ env.timestamp }}.html"
-          Connect-PnPOnline -Url $siteUrl -ClientId $env:clientId -ClientSecret $env:clientSecret -WarningAction Ignore 
-          Add-PnPFile -Path $reportFilePath -Folder $folderPath -NewFileName $reportFileName                                                     
-          Write-Host "Report uploaded to SharePoint successfully using App Registration."
+
+          # Get access token
+          $body = @{
+            grant_type    = "client_credentials"
+            client_id     = $clientId
+            client_secret = $clientSecret
+            scope         = "https://graph.microsoft.com/.default"
+          }
+
+          $tokenResponse = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body $body
+          $accessToken = $tokenResponse.access_token
+
+          # Get Site ID
+          $siteInfo = Invoke-RestMethod -Headers @{Authorization = "Bearer $accessToken"} `
+            -Uri "https://graph.microsoft.com/v1.0/sites/$siteDomain:/sites/$siteName"
+          $siteId = $siteInfo.id
+
+          # Get Drive ID (Documents library)
+          $driveInfo = Invoke-RestMethod -Headers @{Authorization = "Bearer $accessToken"} `
+            -Uri "https://graph.microsoft.com/v1.0/sites/$siteId/drives"
+          $driveId = ($driveInfo.value | Where-Object { $_.name -eq "Documents" }).id
+
+          # Upload file to Reports folder
+          $uploadUrl = "https://graph.microsoft.com/v1.0/drives/$driveId/root:/Reports/$branchName/$reportFileName:/content"
+          Invoke-RestMethod -Headers @{Authorization = "Bearer $accessToken"} `
+            -Uri $uploadUrl -Method PUT -InFile $reportFilePath -ContentType "text/html"
+
+          Write-Host "Report uploaded to SharePoint successfully using Microsoft Graph API."
 
         env:
-          tenantId: ${{ secrets.SHAREPOINT_TENANT_ID }}
-          clientId: ${{ secrets.SHAREPOINT_CLIENT_ID }}
-          clientSecret: ${{ secrets.SHAREPOINT_CLIENT_SECRET }}
-          branchName: ${{ github.ref_name }}
+          SHAREPOINT_TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
+          SHAREPOINT_CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}
+          SHAREPOINT_CLIENT_SECRET: ${{ secrets.SHAREPOINT_CLIENT_SECRET }}
