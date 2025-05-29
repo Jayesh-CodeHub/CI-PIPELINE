@@ -163,7 +163,8 @@ jobs:
 
           # Get Site ID
           $siteInfo = Invoke-RestMethod -Headers @{Authorization = "Bearer $accessToken"} `
-            -Uri "https://graph.microsoft.com/v1.0/sites/$siteDomain:/sites/$siteName"
+            -Uri "https://graph.microsoft.com/v1.0/sites/${siteDomain}:/sites/${siteName}"
+
           $siteId = $siteInfo.id
 
           # Get Drive ID (Documents library)
