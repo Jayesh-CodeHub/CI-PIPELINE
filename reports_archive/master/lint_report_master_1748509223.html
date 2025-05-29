@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lint Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        h3 { color: #495057; margin-top: 30px; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; border-left: 4px solid #007bff; }
+        .summary { background: #e7f3ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Code Quality Analysis Report</h1>
+        <div class="summary">
+            <p><strong>Generated on:</strong> Thu May 29 09:00:23 UTC 2025</p>
+            <p><strong>Branch:</strong> master</p>
+            <p><strong>Repository:</strong> Jayesh-CodeHub/CI-PIPELINE</p>
+        </div>
+<h2>💻 PowerShell Code Analysis</h2>
+<h3>PSScriptAnalyzer Report</h3><pre>
+Analyzing: /home/runner/work/CI-PIPELINE/CI-PIPELINE/extracted_code/ENHC0013102_AUTOMATION_OF_CITRIX_SERVER_UPTIME_ALERT_POWERSHELL/test.ps1
+Warning: PSAvoidUsingEmptyCatchBlock in test.ps1 at line 181
+Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+---
+Warning: PSAvoidUsingEmptyCatchBlock in test.ps1 at line 194
+Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+---
+Warning: PSAvoidUsingEmptyCatchBlock in test.ps1 at line 213
+Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+---
+Warning: PSAvoidUsingEmptyCatchBlock in test.ps1 at line 235
+Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+---
+Warning: PSAvoidUsingEmptyCatchBlock in test.ps1 at line 262
+Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+---
+Warning: PSAvoidUsingWMICmdlet in test.ps1 at line 280
+File 'test.ps1' uses WMI cmdlet. For PowerShell 3.0 and above, use CIM cmdlet which perform the same tasks as the WMI cmdlets. The CIM cmdlets comply with WS-Management (WSMan) standards and with the Common Information Model (CIM) standard, which enables the cmdlets to use the same techniques to manage Windows computers and those running other operating systems.
+---
+Warning: PSAvoidUsingWMICmdlet in test.ps1 at line 293
+File 'test.ps1' uses WMI cmdlet. For PowerShell 3.0 and above, use CIM cmdlet which perform the same tasks as the WMI cmdlets. The CIM cmdlets comply with WS-Management (WSMan) standards and with the Common Information Model (CIM) standard, which enables the cmdlets to use the same techniques to manage Windows computers and those running other operating systems.
+---
+Warning: PSAvoidUsingWMICmdlet in test.ps1 at line 309
+File 'test.ps1' uses WMI cmdlet. For PowerShell 3.0 and above, use CIM cmdlet which perform the same tasks as the WMI cmdlets. The CIM cmdlets comply with WS-Management (WSMan) standards and with the Common Information Model (CIM) standard, which enables the cmdlets to use the same techniques to manage Windows computers and those running other operating systems.
+---
+Warning: PSAvoidUsingWMICmdlet in test.ps1 at line 327
+File 'test.ps1' uses WMI cmdlet. For PowerShell 3.0 and above, use CIM cmdlet which perform the same tasks as the WMI cmdlets. The CIM cmdlets comply with WS-Management (WSMan) standards and with the Common Information Model (CIM) standard, which enables the cmdlets to use the same techniques to manage Windows computers and those running other operating systems.
+---
+Warning: PSUseShouldProcessForStateChangingFunctions in test.ps1 at line 1
+Function 'Start-CitrixMonitoring' has verb that could change system state. Therefore, the function has to support 'ShouldProcess'.
+---
+Analyzing: /home/runner/work/CI-PIPELINE/CI-PIPELINE/extracted_code/ENHC0013102_AUTOMATION_OF_CITRIX_SERVER_UPTIME_ALERT_POWERSHELL/scripts/MicroBots/logentry.ps1
+No issues found
+Analyzing: /home/runner/work/CI-PIPELINE/CI-PIPELINE/extracted_code/ENHC0013102_AUTOMATION_OF_CITRIX_SERVER_UPTIME_ALERT_POWERSHELL/scripts/MicroBots/microbot1.ps1
+Warning: PSAvoidUsingEmptyCatchBlock in microbot1.ps1 at line 186
+Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+---
+Warning: PSAvoidUsingEmptyCatchBlock in microbot1.ps1 at line 199
+Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+---
+Warning: PSAvoidUsingEmptyCatchBlock in microbot1.ps1 at line 218
+Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+---
+Warning: PSAvoidUsingEmptyCatchBlock in microbot1.ps1 at line 240
+Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+---
+Warning: PSAvoidUsingEmptyCatchBlock in microbot1.ps1 at line 267
+Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+---
+Warning: PSAvoidUsingWMICmdlet in microbot1.ps1 at line 285
+File 'microbot1.ps1' uses WMI cmdlet. For PowerShell 3.0 and above, use CIM cmdlet which perform the same tasks as the WMI cmdlets. The CIM cmdlets comply with WS-Management (WSMan) standards and with the Common Information Model (CIM) standard, which enables the cmdlets to use the same techniques to manage Windows computers and those running other operating systems.
+---
+Warning: PSAvoidUsingWMICmdlet in microbot1.ps1 at line 298
+File 'microbot1.ps1' uses WMI cmdlet. For PowerShell 3.0 and above, use CIM cmdlet which perform the same tasks as the WMI cmdlets. The CIM cmdlets comply with WS-Management (WSMan) standards and with the Common Information Model (CIM) standard, which enables the cmdlets to use the same techniques to manage Windows computers and those running other operating systems.
+---
+Warning: PSAvoidUsingWMICmdlet in microbot1.ps1 at line 314
+File 'microbot1.ps1' uses WMI cmdlet. For PowerShell 3.0 and above, use CIM cmdlet which perform the same tasks as the WMI cmdlets. The CIM cmdlets comply with WS-Management (WSMan) standards and with the Common Information Model (CIM) standard, which enables the cmdlets to use the same techniques to manage Windows computers and those running other operating systems.
+---
+Warning: PSAvoidUsingWMICmdlet in microbot1.ps1 at line 332
+File 'microbot1.ps1' uses WMI cmdlet. For PowerShell 3.0 and above, use CIM cmdlet which perform the same tasks as the WMI cmdlets. The CIM cmdlets comply with WS-Management (WSMan) standards and with the Common Information Model (CIM) standard, which enables the cmdlets to use the same techniques to manage Windows computers and those running other operating systems.
+---
+Warning: PSReviewUnusedParameter in microbot1.ps1 at line 10
+The parameter 'outputFolderPath' has been declared but not used.
+---
+Warning: PSReviewUnusedParameter in microbot1.ps1 at line 13
+The parameter 'DomainName' has been declared but not used.
+---
+Warning: PSUseShouldProcessForStateChangingFunctions in microbot1.ps1 at line 16
+Function 'Start-CitrixMonitoring' has verb that could change system state. Therefore, the function has to support 'ShouldProcess'.
+---
+Analyzing: /home/runner/work/CI-PIPELINE/CI-PIPELINE/extracted_code/ENHC0013102_AUTOMATION_OF_CITRIX_SERVER_UPTIME_ALERT_POWERSHELL/scripts/MasterBot/automation_of_citrix_server_uptime_alert.ps1
+Warning: PSAvoidUsingWriteHost in automation_of_citrix_server_uptime_alert.ps1 at line 369
+File 'automation_of_citrix_server_uptime_alert.ps1' uses Write-Host. Avoid using Write-Host because it might not work in all hosts, does not work when there is no host, and (prior to PS 5.0) cannot be suppressed, captured, or redirected. Instead, use Write-Output, Write-Verbose, or Write-Information.
+---
+Warning: PSAvoidUsingWriteHost in automation_of_citrix_server_uptime_alert.ps1 at line 372
+File 'automation_of_citrix_server_uptime_alert.ps1' uses Write-Host. Avoid using Write-Host because it might not work in all hosts, does not work when there is no host, and (prior to PS 5.0) cannot be suppressed, captured, or redirected. Instead, use Write-Output, Write-Verbose, or Write-Information.
+---
+Warning: PSAvoidUsingWriteHost in automation_of_citrix_server_uptime_alert.ps1 at line 375
+File 'automation_of_citrix_server_uptime_alert.ps1' uses Write-Host. Avoid using Write-Host because it might not work in all hosts, does not work when there is no host, and (prior to PS 5.0) cannot be suppressed, captured, or redirected. Instead, use Write-Output, Write-Verbose, or Write-Information.
+---
+Warning: PSUseDeclaredVarsMoreThanAssignments in automation_of_citrix_server_uptime_alert.ps1 at line 8
+The variable 'credsFolderPath' is assigned but never used.
+---
+Warning: PSUseDeclaredVarsMoreThanAssignments in automation_of_citrix_server_uptime_alert.ps1 at line 10
+The variable 'libFolderPath' is assigned but never used.
+---
+Warning: PSUseDeclaredVarsMoreThanAssignments in automation_of_citrix_server_uptime_alert.ps1 at line 15
+The variable 'reportFile' is assigned but never used.
+---
+Warning: PSUseDeclaredVarsMoreThanAssignments in automation_of_citrix_server_uptime_alert.ps1 at line 17
+The variable 'masterbotFolderPath' is assigned but never used.
+---
+</pre>
+</div></body></html>
