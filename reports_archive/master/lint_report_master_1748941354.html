@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lint Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        h3 { color: #495057; margin-top: 30px; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; border-left: 4px solid #007bff; }
+        .summary { background: #e7f3ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Code Quality Analysis Report</h1>
+        <div class="summary">
+            <p><strong>Generated on:</strong> Tue Jun  3 09:02:34 UTC 2025</p>
+            <p><strong>Branch:</strong> master</p>
+            <p><strong>Repository:</strong> Jayesh-CodeHub/CI-PIPELINE</p>
+        </div>
+<h2>🐍 Python Code Analysis</h2>
+<h3>Pylint Report</h3><pre>
+************* Module license_bot
+extracted_code/microbots/license_bot.py:7: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/microbots/license_bot.py:21: [C0305(trailing-newlines), ] Trailing newlines
+extracted_code/microbots/license_bot.py:1: [C0114(missing-module-docstring), ] Missing module docstring
+extracted_code/microbots/license_bot.py:3: [C0116(missing-function-docstring), license_check] Missing function or method docstring
+extracted_code/microbots/license_bot.py:19: [W0718(broad-exception-caught), license_check] Catching too general exception Exception
+extracted_code/microbots/license_bot.py:15: [R1705(no-else-return), license_check] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+************* Module microbot1
+extracted_code/microbots/microbot1.py:15: [C0301(line-too-long), ] Line too long (125/100)
+extracted_code/microbots/microbot1.py:19: [C0301(line-too-long), ] Line too long (125/100)
+extracted_code/microbots/microbot1.py:21: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/microbots/microbot1.py:58: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/microbots/microbot1.py:83: [C0301(line-too-long), ] Line too long (106/100)
+extracted_code/microbots/microbot1.py:84: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/microbots/microbot1.py:104: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/microbots/microbot1.py:117: [C0301(line-too-long), ] Line too long (116/100)
+extracted_code/microbots/microbot1.py:124: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/microbots/microbot1.py:141: [C0301(line-too-long), ] Line too long (110/100)
+extracted_code/microbots/microbot1.py:158: [C0303(trailing-whitespace), ] Trailing whitespace
+extracted_code/microbots/microbot1.py:160: [C0301(line-too-long), ] Line too long (107/100)
+extracted_code/microbots/microbot1.py:162: [C0301(line-too-long), ] Line too long (114/100)
+extracted_code/microbots/microbot1.py:1: [C0114(missing-module-docstring), ] Missing module docstring
+extracted_code/microbots/microbot1.py:1: [E0401(import-error), ] Unable to import 'paramiko'
+extracted_code/microbots/microbot1.py:2: [E0401(import-error), ] Unable to import 'openpyxl'
+extracted_code/microbots/microbot1.py:3: [E0401(import-error), ] Unable to import 'win32cred'
+extracted_code/microbots/microbot1.py:14: [C0116(missing-function-docstring), microbot1] Missing function or method docstring
+extracted_code/microbots/microbot1.py:14: [R0914(too-many-locals), microbot1] Too many local variables (22/15)
+extracted_code/microbots/microbot1.py:41: [W0718(broad-exception-caught), microbot1.get_credentials] Catching too general exception Exception
+extracted_code/microbots/microbot1.py:65: [W0718(broad-exception-caught), microbot1.ssh_connect] Catching too general exception Exception
+extracted_code/microbots/microbot1.py:59: [W0612(unused-variable), microbot1.ssh_connect] Unused variable 'stdin'
+extracted_code/microbots/microbot1.py:59: [W0612(unused-variable), microbot1.ssh_connect] Unused variable 'stderr'
+extracted_code/microbots/microbot1.py:93: [R0914(too-many-locals), microbot1.send_email] Too many local variables (16/15)
+extracted_code/microbots/microbot1.py:126: [W0718(broad-exception-caught), microbot1.send_email] Catching too general exception Exception
+extracted_code/microbots/microbot1.py:95: [W1514(unspecified-encoding), microbot1.send_email] Using open without explicitly specifying an encoding
+extracted_code/microbots/microbot1.py:163: [W0718(broad-exception-caught), microbot1] Catching too general exception Exception
+extracted_code/microbots/microbot1.py:138: [W1514(unspecified-encoding), microbot1] Using open without explicitly specifying an encoding
+extracted_code/microbots/microbot1.py:140: [W1514(unspecified-encoding), microbot1] Using open without explicitly specifying an encoding
+extracted_code/microbots/microbot1.py:14: [R0915(too-many-statements), microbot1] Too many statements (97/50)
+extracted_code/microbots/microbot1.py:4: [C0411(wrong-import-order), ] standard import "os" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/microbots/microbot1.py:5: [C0411(wrong-import-order), ] standard import "sys" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/microbots/microbot1.py:6: [C0411(wrong-import-order), ] standard import "json" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/microbots/microbot1.py:7: [C0411(wrong-import-order), ] standard import "datetime.datetime" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/microbots/microbot1.py:8: [C0411(wrong-import-order), ] standard import "smtplib" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/microbots/microbot1.py:9: [C0411(wrong-import-order), ] standard import "email.mime.multipart.MIMEMultipart" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/microbots/microbot1.py:10: [C0411(wrong-import-order), ] standard import "email.mime.text.MIMEText" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/microbots/microbot1.py:11: [C0411(wrong-import-order), ] standard import "email.mime.base.MIMEBase" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+extracted_code/microbots/microbot1.py:12: [C0411(wrong-import-order), ] standard import "email.encoders" should be placed before third party imports "paramiko", "openpyxl", "win32cred"
+************* Module masterbot
+extracted_code/masterbot/masterbot.py:34: [C0304(missing-final-newline), ] Final newline missing
+extracted_code/masterbot/masterbot.py:1: [C0114(missing-module-docstring), ] Missing module docstring
+extracted_code/masterbot/masterbot.py:14: [E0401(import-error), ] Unable to import 'scripts.microbots.microbot1'
+extracted_code/masterbot/masterbot.py:14: [C0413(wrong-import-position), ] Import "from scripts.microbots.microbot1 import microbot1" should be placed at the top of the module
+extracted_code/masterbot/masterbot.py:15: [E0401(import-error), ] Unable to import 'scripts.microbots.license_bot'
+extracted_code/masterbot/masterbot.py:15: [C0413(wrong-import-position), ] Import "from scripts.microbots.license_bot import license_check" should be placed at the top of the module
+extracted_code/masterbot/masterbot.py:17: [C0116(missing-function-docstring), main] Missing function or method docstring
+extracted_code/masterbot/masterbot.py:20: [W1514(unspecified-encoding), main] Using open without explicitly specifying an encoding
+extracted_code/masterbot/masterbot.py:3: [W0611(unused-import), ] Unused import logging
+
+-----------------------------------
+Your code has been rated at 5.23/10
+
+Pylint analysis completed successfully
+</pre>
+<h3>Flake8 Report</h3><pre>
+extracted_code/masterbot/masterbot.py:3:1: F401 'logging' imported but unused
+extracted_code/masterbot/masterbot.py:6:80: E501 line too long (96 > 79 characters)
+extracted_code/masterbot/masterbot.py:8:41: E231 missing whitespace after ','
+extracted_code/masterbot/masterbot.py:10:80: E501 line too long (80 > 79 characters)
+extracted_code/masterbot/masterbot.py:11:57: E231 missing whitespace after ','
+extracted_code/masterbot/masterbot.py:14:1: E402 module level import not at top of file
+extracted_code/masterbot/masterbot.py:15:1: E402 module level import not at top of file
+extracted_code/masterbot/masterbot.py:17:1: E302 expected 2 blank lines, found 1
+extracted_code/masterbot/masterbot.py:28:9: E303 too many blank lines (3)
+extracted_code/masterbot/masterbot.py:33:1: E305 expected 2 blank lines after class or function definition, found 1
+extracted_code/masterbot/masterbot.py:34:11: W292 no newline at end of file
+extracted_code/microbots/license_bot.py:3:1: E302 expected 2 blank lines, found 1
+extracted_code/microbots/license_bot.py:7:1: W293 blank line contains whitespace
+extracted_code/microbots/license_bot.py:16:80: E501 line too long (95 > 79 characters)
+extracted_code/microbots/license_bot.py:18:80: E501 line too long (87 > 79 characters)
+extracted_code/microbots/license_bot.py:21:1: W391 blank line at end of file
+extracted_code/microbots/microbot1.py:14:1: E302 expected 2 blank lines, found 1
+extracted_code/microbots/microbot1.py:15:80: E501 line too long (125 > 79 characters)
+extracted_code/microbots/microbot1.py:17:80: E501 line too long (100 > 79 characters)
+extracted_code/microbots/microbot1.py:19:80: E501 line too long (125 > 79 characters)
+extracted_code/microbots/microbot1.py:21:34: W291 trailing whitespace
+extracted_code/microbots/microbot1.py:37:80: E501 line too long (81 > 79 characters)
+extracted_code/microbots/microbot1.py:49:80: E501 line too long (88 > 79 characters)
+extracted_code/microbots/microbot1.py:55:80: E501 line too long (97 > 79 characters)
+extracted_code/microbots/microbot1.py:58:1: W293 blank line contains whitespace
+extracted_code/microbots/microbot1.py:66:80: E501 line too long (89 > 79 characters)
+extracted_code/microbots/microbot1.py:83:80: E501 line too long (106 > 79 characters)
+extracted_code/microbots/microbot1.py:84:1: W293 blank line contains whitespace
+extracted_code/microbots/microbot1.py:104:1: W293 blank line contains whitespace
+extracted_code/microbots/microbot1.py:117:80: E501 line too long (116 > 79 characters)
+extracted_code/microbots/microbot1.py:124:1: W293 blank line contains whitespace
+extracted_code/microbots/microbot1.py:131:80: E501 line too long (83 > 79 characters)
+extracted_code/microbots/microbot1.py:139:80: E501 line too long (86 > 79 characters)
+extracted_code/microbots/microbot1.py:141:80: E501 line too long (110 > 79 characters)
+extracted_code/microbots/microbot1.py:143:80: E501 line too long (84 > 79 characters)
+extracted_code/microbots/microbot1.py:145:80: E501 line too long (82 > 79 characters)
+extracted_code/microbots/microbot1.py:148:80: E501 line too long (100 > 79 characters)
+extracted_code/microbots/microbot1.py:150:80: E501 line too long (95 > 79 characters)
+extracted_code/microbots/microbot1.py:152:80: E501 line too long (83 > 79 characters)
+extracted_code/microbots/microbot1.py:154:80: E501 line too long (97 > 79 characters)
+extracted_code/microbots/microbot1.py:158:1: W293 blank line contains whitespace
+extracted_code/microbots/microbot1.py:160:80: E501 line too long (107 > 79 characters)
+extracted_code/microbots/microbot1.py:162:80: E501 line too long (114 > 79 characters)
+Flake8 analysis completed successfully
+</pre>
+<h3>🔒 Security Analysis (Bandit)</h3><pre>
+Run started:2025-06-03 09:02:36.098604
+
+Test results:
+>> Issue: [B507:ssh_no_host_key_verification] Paramiko call with policy set to automatically trust the unknown host key.
+   Severity: High   Confidence: Medium
+   CWE: CWE-295 (https://cwe.mitre.org/data/definitions/295.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.3/plugins/b507_ssh_no_host_key_verification.html
+   Location: extracted_code/microbots/microbot1.py:48:12
+47	            ssh_client = paramiko.SSHClient()
+48	            ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+49	            ssh_client.connect(hostname=server_ip, username=username, password=password)
+
+--------------------------------------------------
+>> Issue: [B601:paramiko_calls] Possible shell injection via Paramiko call, check inputs are properly sanitized.
+   Severity: Medium   Confidence: Medium
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.3/plugins/b601_paramiko_calls.html
+   Location: extracted_code/microbots/microbot1.py:59:40
+58	                
+59	                stdin, stdout, stderr = ssh_client.exec_command(command)
+60	                output = ''.join(stdout.readlines())
+
+--------------------------------------------------
+
+Code scanned:
+	Total lines of code: 175
+	Total lines skipped (#nosec): 0
+	Total potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 0
+
+Run metrics:
+	Total issues (by severity):
+		Undefined: 0
+		Low: 0
+		Medium: 1
+		High: 1
+	Total issues (by confidence):
+		Undefined: 0
+		Low: 0
+		Medium: 2
+		High: 0
+Files skipped (0):
+Security analysis completed successfully
+</pre>
+<h3>📊 Code Complexity (Radon)</h3><pre>
+Complexity analysis encountered issues
+</pre>
+</div></body></html>
