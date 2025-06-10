@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Critical Error Analysis Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        h3 { color: #495057; margin-top: 30px; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; border-left: 4px solid #007bff; }
+        .summary { background: #e7f3ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb; }
+        .error { color: #dc3545; background: #f8d7da; padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #f5c6cb; }
+        .critical { color: #721c24; background: #f8d7da; padding: 10px; border-radius: 5px; margin: 10px 0; border: 2px solid #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Critical Error Analysis Report</h1>
+        <div class="summary">
+            <p><strong>Generated on:</strong> Tue Jun 10 05:57:31 UTC 2025</p>
+            <p><strong>Branch:</strong> master</p>
+            <p><strong>Repository:</strong> Jayesh-CodeHub/CI-PIPELINE</p>
+            <p><strong>Analysis Type:</strong> Critical Errors and Syntax Issues Only</p>
+        </div>
+<h2>🐍 Python Critical Error Analysis</h2>
+<h3>Critical Issues (Pylint)</h3>
+<pre class='error'>************* Module microbot1
+extracted_code/microbots/microbot1.py:1: [E0401(import-error), ] Unable to import 'paramiko'
+extracted_code/microbots/microbot1.py:2: [E0401(import-error), ] Unable to import 'openpyxl'
+extracted_code/microbots/microbot1.py:3: [E0401(import-error), ] Unable to import 'win32cred'
+************* Module masterbot
+extracted_code/masterbot/masterbot.py:14: [E0401(import-error), ] Unable to import 'scripts.microbots.microbot1'
+extracted_code/masterbot/masterbot.py:15: [E0401(import-error), ] Unable to import 'scripts.microbots.license_bot'</pre>
+<h3>Syntax Errors (Flake8)</h3>
+<div class='success'>✅ No syntax errors found with Flake8</div>
+<h3>🔒 High Severity Security Issues (Bandit)</h3>
+<div class='success'>✅ No high severity security issues found</div>
+<h2>📊 Analysis Summary</h2>
+<div class='error'><h3>⚠️ Critical Issues Found</h3><p>Total critical errors/issues: 5</p><p>Please review and fix these issues before deployment.</p></div>
+</div></body></html>
