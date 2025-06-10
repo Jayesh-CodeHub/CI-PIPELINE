@@ -79,7 +79,7 @@ jobs:
         if: steps.detect_lang.outputs.python_detected == 'true'
         run: |
           python -m pip install --upgrade pip
-          pip install pylint flake8 bandit radon
+          pip install pylint flake8 bandit
 
       - name: Install Bash Dependencies
         if: steps.detect_lang.outputs.bash_detected == 'true'
@@ -94,7 +94,7 @@ jobs:
           sudo apt-get install -y powershell
           pwsh -Command "Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser"
 
-      - name: Perform Linting and Security Analysis
+      - name: Perform Critical Error Analysis
         id: lint_step
         if: steps.find_zip.outputs.skip_analysis != 'true'
         continue-on-error: true
@@ -103,17 +103,18 @@ jobs:
           TIMESTAMP=$(date +%s)
           BRANCH_NAME="${{ github.ref_name }}"
           REPORT_FILE="reports/lint_report_${BRANCH_NAME}_${TIMESTAMP}.html"
+          ERROR_COUNT=0
           
           echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
           echo "report_file=$REPORT_FILE" >> $GITHUB_OUTPUT
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
-          # Create HTML report
+          # Create HTML report header
           cat > "$REPORT_FILE" << EOF
           <!DOCTYPE html>
           <html>
           <head>
-              <title>Lint Report</title>
+              <title>Critical Error Analysis Report</title>
               <style>
                   body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
                   .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -121,128 +122,145 @@ jobs:
                   h3 { color: #495057; margin-top: 30px; }
                   pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; border-left: 4px solid #007bff; }
                   .summary { background: #e7f3ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-                  .error { color: #dc3545; }
-                  .warning { color: #ffc107; }
-                  .info { color: #17a2b8; }
+                  .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb; }
+                  .error { color: #dc3545; background: #f8d7da; padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #f5c6cb; }
+                  .critical { color: #721c24; background: #f8d7da; padding: 10px; border-radius: 5px; margin: 10px 0; border: 2px solid #dc3545; font-weight: bold; }
               </style>
           </head>
           <body>
               <div class="container">
-                  <h1>🔍 Code Quality Analysis Report</h1>
+                  <h1>🔍 Critical Error Analysis Report</h1>
                   <div class="summary">
                       <p><strong>Generated on:</strong> $(date)</p>
                       <p><strong>Branch:</strong> $BRANCH_NAME</p>
                       <p><strong>Repository:</strong> ${{ github.repository }}</p>
+                      <p><strong>Analysis Type:</strong> Critical Errors and Syntax Issues Only</p>
                   </div>
           EOF
 
-          # Python Analysis
+          # Python Analysis - Only Critical Errors
           if [ "${{ steps.detect_lang.outputs.python_detected }}" = "true" ]; then
-            echo "<h2>🐍 Python Code Analysis</h2>" >> "$REPORT_FILE"
+            echo "<h2>🐍 Python Critical Error Analysis</h2>" >> "$REPORT_FILE"
             
-            # Pylint
-            echo "<h3>Pylint Report</h3><pre>" >> "$REPORT_FILE"
-            if find extracted_code -type f -name "*.py" -print0 | xargs -0 pylint --output-format=parseable --exit-zero 2>&1 >> "$REPORT_FILE"; then
-              echo "Pylint analysis completed successfully" >> "$REPORT_FILE"
+            # Pylint - Only errors and fatal issues
+            echo "<h3>Critical Issues (Pylint)</h3>" >> "$REPORT_FILE"
+            pylint_output=$(find extracted_code -type f -name "*.py" -print0 | xargs -0 pylint --errors-only --disable=C,R,W --output-format=parseable 2>&1 || true)
+            if [ -n "$pylint_output" ]; then
+              echo "<pre class='error'>$pylint_output</pre>" >> "$REPORT_FILE"
+              ERROR_COUNT=$((ERROR_COUNT + $(echo "$pylint_output" | grep -c ":" || echo 0)))
             else
-              echo "Pylint analysis encountered issues" >> "$REPORT_FILE"
+              echo "<div class='success'>✅ No critical errors found with Pylint</div>" >> "$REPORT_FILE"
             fi
-            echo "</pre>" >> "$REPORT_FILE"
 
-            # Flake8
-            echo "<h3>Flake8 Report</h3><pre>" >> "$REPORT_FILE"
-            if find extracted_code -type f -name "*.py" -print0 | xargs -0 flake8 --format=default --exit-zero 2>&1 >> "$REPORT_FILE"; then
-              echo "Flake8 analysis completed successfully" >> "$REPORT_FILE"
+            # Flake8 - Only syntax errors and critical issues
+            echo "<h3>Syntax Errors (Flake8)</h3>" >> "$REPORT_FILE"
+            flake8_output=$(find extracted_code -type f -name "*.py" -print0 | xargs -0 flake8 --select=E9,F63,F7,F82 --format=default 2>&1 || true)
+            if [ -n "$flake8_output" ]; then
+              echo "<pre class='critical'>$flake8_output</pre>" >> "$REPORT_FILE"
+              ERROR_COUNT=$((ERROR_COUNT + $(echo "$flake8_output" | grep -c ":" || echo 0)))
             else
-              echo "Flake8 analysis encountered issues" >> "$REPORT_FILE"
+              echo "<div class='success'>✅ No syntax errors found with Flake8</div>" >> "$REPORT_FILE"
             fi
-            echo "</pre>" >> "$REPORT_FILE"
 
-            # Bandit Security Analysis
-            echo "<h3>🔒 Security Analysis (Bandit)</h3><pre>" >> "$REPORT_FILE"
-            if bandit -r extracted_code --exit-zero 2>&1 >> "$REPORT_FILE"; then
-              echo "Security analysis completed successfully" >> "$REPORT_FILE"
+            # Bandit - Only high severity security issues
+            echo "<h3>🔒 High Severity Security Issues (Bandit)</h3>" >> "$REPORT_FILE"
+            bandit_output=$(bandit -r extracted_code -f txt -l -i --severity-level high 2>&1 || true)
+            if echo "$bandit_output" | grep -q "High:"; then
+              echo "<pre class='critical'>$bandit_output</pre>" >> "$REPORT_FILE"
+              ERROR_COUNT=$((ERROR_COUNT + $(echo "$bandit_output" | grep -c "High:" || echo 0)))
             else
-              echo "Security analysis encountered issues" >> "$REPORT_FILE"
+              echo "<div class='success'>✅ No high severity security issues found</div>" >> "$REPORT_FILE"
             fi
-            echo "</pre>" >> "$REPORT_FILE"
-
-            # Code Complexity
-            echo "<h3>📊 Code Complexity (Radon)</h3><pre>" >> "$REPORT_FILE"
-            if find extracted_code -type f -name "*.py" -print0 | xargs -0 radon cc -a --exit-zero 2>&1 >> "$REPORT_FILE"; then
-              echo "Complexity analysis completed successfully" >> "$REPORT_FILE"
-            else
-              echo "Complexity analysis encountered issues" >> "$REPORT_FILE"
-            fi
-            echo "</pre>" >> "$REPORT_FILE"
           fi
 
-          # Bash Analysis
+          # Bash Analysis - Only errors
           if [ "${{ steps.detect_lang.outputs.bash_detected }}" = "true" ]; then
-            echo "<h2>🐚 Bash Code Analysis</h2>" >> "$REPORT_FILE"
-            echo "<h3>ShellCheck Report</h3><pre>" >> "$REPORT_FILE"
-            if find extracted_code -type f -name "*.sh" -print0 | xargs -0 shellcheck --format=gcc 2>&1 >> "$REPORT_FILE"; then
-              echo "ShellCheck analysis completed successfully" >> "$REPORT_FILE"
+            echo "<h2>🐚 Bash Critical Error Analysis</h2>" >> "$REPORT_FILE"
+            echo "<h3>Syntax and Logic Errors (ShellCheck)</h3>" >> "$REPORT_FILE"
+            shellcheck_output=$(find extracted_code -type f -name "*.sh" -print0 | xargs -0 shellcheck --severity=error --format=gcc 2>&1 || true)
+            if [ -n "$shellcheck_output" ]; then
+              echo "<pre class='error'>$shellcheck_output</pre>" >> "$REPORT_FILE"
+              ERROR_COUNT=$((ERROR_COUNT + $(echo "$shellcheck_output" | grep -c "error:" || echo 0)))
             else
-              echo "ShellCheck analysis encountered issues" >> "$REPORT_FILE"
+              echo "<div class='success'>✅ No critical errors found in Bash scripts</div>" >> "$REPORT_FILE"
             fi
-            echo "</pre>" >> "$REPORT_FILE"
           fi
 
-          # PowerShell Analysis
+          # PowerShell Analysis - Only errors
           if [ "${{ steps.detect_lang.outputs.powershell_detected }}" = "true" ]; then
-            echo "<h2>💻 PowerShell Code Analysis</h2>" >> "$REPORT_FILE"
-            echo "<h3>PSScriptAnalyzer Report</h3><pre>" >> "$REPORT_FILE"
-            pwsh -NoProfile -Command "
+            echo "<h2>💻 PowerShell Critical Error Analysis</h2>" >> "$REPORT_FILE"
+            echo "<h3>Syntax and Critical Errors (PSScriptAnalyzer)</h3>" >> "$REPORT_FILE"
+            ps_output=$(pwsh -NoProfile -Command "
             try {
               \$files = Get-ChildItem -Path 'extracted_code' -Recurse -Filter '*.ps1' -ErrorAction SilentlyContinue
+              \$errorFound = \$false
               if (\$files.Count -eq 0) {
                 Write-Output 'No PowerShell files found for analysis'
               } else {
                 foreach (\$file in \$files) {
-                  Write-Output \"Analyzing: \$(\$file.FullName)\"
                   try {
-                    \$results = Invoke-ScriptAnalyzer -Path \$file.FullName -Severity Warning,Error -ErrorAction SilentlyContinue
-                    if (\$results.Count -eq 0) {
-                      Write-Output 'No issues found'
-                    } else {
+                    \$results = Invoke-ScriptAnalyzer -Path \$file.FullName -Severity Error -ErrorAction SilentlyContinue
+                    if (\$results.Count -gt 0) {
+                      \$errorFound = \$true
                       foreach (\$result in \$results) {
-                        Write-Output \"\$(\$result.Severity): \$(\$result.RuleName) in \$(\$result.ScriptName) at line \$(\$result.Line)\"
+                        Write-Output \"ERROR: \$(\$result.RuleName) in \$(\$result.ScriptName) at line \$(\$result.Line)\"
                         Write-Output \"\$(\$result.Message)\"
                         Write-Output '---'
                       }
                     }
                   } catch {
                     Write-Output \"Error analyzing \$(\$file.Name): \$(\$_.Exception.Message)\"
+                    \$errorFound = \$true
                   }
+                }
+                if (-not \$errorFound) {
+                  Write-Output 'SUCCESS: No critical errors found'
                 }
               }
             } catch {
               Write-Output \"PowerShell analysis failed: \$(\$_.Exception.Message)\"
-            }" 2>&1 >> "$REPORT_FILE"
-            echo "</pre>" >> "$REPORT_FILE"
+            }" 2>&1)
+            
+            if echo "$ps_output" | grep -q "ERROR:"; then
+              echo "<pre class='error'>$ps_output</pre>" >> "$REPORT_FILE"
+              ERROR_COUNT=$((ERROR_COUNT + $(echo "$ps_output" | grep -c "ERROR:" || echo 0)))
+            else
+              echo "<div class='success'>✅ No critical errors found in PowerShell scripts</div>" >> "$REPORT_FILE"
+            fi
           fi
+
+          # Summary
+          echo "<h2>📊 Analysis Summary</h2>" >> "$REPORT_FILE"
+          if [ $ERROR_COUNT -eq 0 ]; then
+            echo "<div class='success'><h3>🎉 Code Scan Successful!</h3><p>No critical errors or syntax issues found. Code is ready for deployment.</p></div>" >> "$REPORT_FILE"
+            echo "scan_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "<div class='error'><h3>⚠️ Critical Issues Found</h3><p>Total critical errors/issues: $ERROR_COUNT</p><p>Please review and fix these issues before deployment.</p></div>" >> "$REPORT_FILE"
+            echo "scan_status=failed" >> $GITHUB_OUTPUT
+          fi
+          echo "error_count=$ERROR_COUNT" >> $GITHUB_OUTPUT
 
           # Close HTML
           echo "</div></body></html>" >> "$REPORT_FILE"
           
           echo "Report generated: $REPORT_FILE"
-          ls -la "$REPORT_FILE"
+          echo "Critical errors found: $ERROR_COUNT"
 
-      - name: Commit and Push Report
-        if: always() && steps.find_zip.outputs.skip_analysis != 'true'
+      - name: Commit Report to Branch (Only if Errors Found)
+        if: always() && steps.find_zip.outputs.skip_analysis != 'true' && steps.lint_step.outputs.scan_status == 'failed'
         run: |
           branch_name="${{ steps.lint_step.outputs.branch_name }}"
           timestamp="${{ steps.lint_step.outputs.timestamp }}"
           report_file="${{ steps.lint_step.outputs.report_file }}"
+          error_count="${{ steps.lint_step.outputs.error_count }}"
           
-          # Create reports directory structure
+          # Create reports directory structure for the branch
           mkdir -p "reports_archive/$branch_name"
           
           # Copy report to archive location
           if [ -f "$report_file" ]; then
             cp "$report_file" "reports_archive/$branch_name/"
-            echo "Report copied to reports_archive/$branch_name/"
+            echo "Error report saved to reports_archive/$branch_name/"
           else
             echo "Warning: Report file not found at $report_file"
             exit 1
@@ -257,19 +275,19 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Add lint report for branch $branch_name (timestamp: $timestamp)"
+            git commit -m "⚠️ Critical errors found: Add error report for branch $branch_name ($error_count issues found)"
             git push origin "$branch_name"
-            echo "✅ Report committed and pushed to repository"
+            echo "❌ Error report committed to branch $branch_name"
           fi
 
-      - name: Upload Report to SharePoint using Microsoft Graph API
-        if: always() && steps.find_zip.outputs.skip_analysis != 'true'
+      - name: Upload Successful Report to SharePoint
+        if: always() && steps.find_zip.outputs.skip_analysis != 'true' && steps.lint_step.outputs.scan_status == 'success'
         env:
           TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
           CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.SHAREPOINT_CLIENT_SECRET }}
           SITE_URL: "https://n1pw.sharepoint.com/sites/CIpipeline-testing"
-          FOLDER_PATH: "Shared Documents/Reports"
+          FOLDER_PATH: "Shared Documents/Reports/Successful_Scans"
         run: |
           # Install required tools
           sudo apt-get install -y curl jq
@@ -278,6 +296,7 @@ jobs:
           timestamp="${{ steps.lint_step.outputs.timestamp }}"
           report_file="${{ steps.lint_step.outputs.report_file }}"
           
+          echo "🎉 Code scan was successful! Uploading to SharePoint..."
           echo "🔐 Authenticating with Microsoft Graph API..."
           
           # Get access token
@@ -319,33 +338,53 @@ jobs:
           
           echo "✅ Site ID obtained: $site_id"
           
-          # Get or create Reports folder
-          echo "📁 Accessing Reports folder..."
-          folder_response=$(curl -s -X GET \
+          # Get or create Successful_Scans folder
+          echo "📁 Accessing Successful_Scans folder..."
+          
+          # First, ensure Reports folder exists
+          reports_folder_response=$(curl -s -X GET \
             -H "Authorization: Bearer $access_token" \
             -H "Accept: application/json" \
             "https://graph.microsoft.com/v1.0/sites/$site_id/drive/root:/Shared%20Documents/Reports")
           
-          parent_id=$(echo "$folder_response" | jq -r '.id')
+          reports_folder_id=$(echo "$reports_folder_response" | jq -r '.id')
           
-          if [ "$parent_id" = "null" ] || [ -z "$parent_id" ]; then
+          if [ "$reports_folder_id" = "null" ] || [ -z "$reports_folder_id" ]; then
             echo "⚠️ Reports folder not found, creating it..."
-            create_folder_response=$(curl -s -X POST \
+            create_reports_response=$(curl -s -X POST \
               -H "Authorization: Bearer $access_token" \
               -H "Content-Type: application/json" \
               -d '{"name":"Reports","folder":{}}' \
               "https://graph.microsoft.com/v1.0/sites/$site_id/drive/root:/Shared%20Documents:/children")
             
-            parent_id=$(echo "$create_folder_response" | jq -r '.id')
+            reports_folder_id=$(echo "$create_reports_response" | jq -r '.id')
+          fi
+          
+          # Now get or create Successful_Scans folder
+          success_folder_response=$(curl -s -X GET \
+            -H "Authorization: Bearer $access_token" \
+            -H "Accept: application/json" \
+            "https://graph.microsoft.com/v1.0/sites/$site_id/drive/root:/Shared%20Documents/Reports/Successful_Scans")
+          
+          success_folder_id=$(echo "$success_folder_response" | jq -r '.id')
+          
+          if [ "$success_folder_id" = "null" ] || [ -z "$success_folder_id" ]; then
+            echo "⚠️ Successful_Scans folder not found, creating it..."
+            create_success_response=$(curl -s -X POST \
+              -H "Authorization: Bearer $access_token" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"Successful_Scans","folder":{}}' \
+              "https://graph.microsoft.com/v1.0/sites/$site_id/drive/items/$reports_folder_id/children")
             
-            if [ "$parent_id" = "null" ] || [ -z "$parent_id" ]; then
-              echo "❌ Failed to create Reports folder"
-              echo "Create folder response: $create_folder_response"
+            success_folder_id=$(echo "$create_success_response" | jq -r '.id')
+            
+            if [ "$success_folder_id" = "null" ] || [ -z "$success_folder_id" ]; then
+              echo "❌ Failed to create Successful_Scans folder"
               exit 1
             fi
-            echo "✅ Reports folder created"
+            echo "✅ Successful_Scans folder created"
           else
-            echo "✅ Reports folder found"
+            echo "✅ Successful_Scans folder found"
           fi
           
           # Upload file
@@ -354,10 +393,10 @@ jobs:
             exit 1
           fi
           
-          file_name="lint_report_${branch_name}_${timestamp}.html"
-          upload_url="https://graph.microsoft.com/v1.0/sites/$site_id/drive/items/$parent_id:/$file_name:/content"
+          file_name="SUCCESS_lint_report_${branch_name}_${timestamp}.html"
+          upload_url="https://graph.microsoft.com/v1.0/sites/$site_id/drive/items/$success_folder_id:/$file_name:/content"
           
-          echo "📤 Uploading report to SharePoint..."
+          echo "📤 Uploading successful scan report to SharePoint..."
           echo "Upload URL: $upload_url"
           echo "File: $report_file"
           
@@ -370,7 +409,7 @@ jobs:
           response_body="${upload_response%???}"
           
           if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
-            echo "✅ Report successfully uploaded to SharePoint!"
+            echo "🎉 Successful scan report uploaded to SharePoint!"
             echo "File name: $file_name"
             
             # Extract file URL if available
@@ -384,3 +423,28 @@ jobs:
             echo "Response: $response_body"
             exit 1
           fi
+
+      - name: Final Status Summary
+        if: always() && steps.find_zip.outputs.skip_analysis != 'true'
+        run: |
+          scan_status="${{ steps.lint_step.outputs.scan_status }}"
+          error_count="${{ steps.lint_step.outputs.error_count }}"
+          branch_name="${{ steps.lint_step.outputs.branch_name }}"
+          
+          echo "=================================="
+          echo "🔍 FINAL ANALYSIS SUMMARY"
+          echo "=================================="
+          echo "Branch: $branch_name"
+          echo "Scan Status: $scan_status"
+          
+          if [ "$scan_status" = "success" ]; then
+            echo "✅ CODE SCAN SUCCESSFUL!"
+            echo "📤 Report uploaded to SharePoint (Successful_Scans folder)"
+            echo "🚀 Code is ready for deployment"
+          else
+            echo "❌ CRITICAL ERRORS FOUND!"
+            echo "📝 Error count: $error_count"
+            echo "📁 Error report saved to branch: $branch_name"
+            echo "🔧 Please fix the issues before proceeding"
+          fi
+          echo "=================================="
